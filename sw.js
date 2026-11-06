@@ -2,8 +2,8 @@
 // App-Dateien werden versioniert vorab geladen (cache-first). Eine neue Version wird aktiv, sobald der
 // Nutzer „Jetzt aktualisieren“ wählt (SKIP_WAITING) – oder spätestens, wenn alle App-Fenster geschlossen waren.
 // VERSION, HASH, BIG und SHELL werden von tools/release.mjs gepflegt – nicht von Hand ändern.
-const VERSION = '1.1.3';
-const HASH = '3e5452113a';
+const VERSION = '1.1.4';
+const HASH = '41abb3a994';
 const APP = `ekg-app-${VERSION}-${HASH}`;
 const BIG = 'ekg-big-bc211fb245'; // KI-Modell, WASM, pdf.js (Name enthält Inhalts-Hash)
 // <shell>
@@ -22,10 +22,10 @@ const SHELL = [
   'js/demo.js#7bdcf0cca5',
   'js/device/transports.js#7cbef1834f',
   'js/device/viatom-protocol.js#f51e97ee7f',
-  'js/dsp/analysis.js#373d22ae51',
+  'js/dsp/analysis.js#d2e84da54a',
   'js/dsp/filters.js#8e9d60323d',
   'js/ecg-view.js#1be07f2e8c',
-  'js/findings.js#e5f6431faf',
+  'js/findings.js#91ab2bff70',
   'js/i18n.js#dfdb95dc4a',
   'js/import/importers.js#392a0f2e25',
   'js/import/pdf-digitize.js#7d978fe456',
@@ -39,7 +39,7 @@ const SHELL = [
   'js/locales/pl.js#6f1d4f2afe',
   'js/locales/tr.js#a9de03f11f',
   'js/storage.js#788fb54882',
-  'js/version.js#26efd8479d',
+  'js/version.js#abc9259327',
   'manifest.webmanifest#7c731c3df7',
   'styles.css#19a3bed65f',
 ];

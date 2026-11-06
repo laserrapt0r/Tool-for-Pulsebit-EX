@@ -192,7 +192,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
       const border = iv.pr <= (a.source === 'pdf' ? 230 : 220);
       add(F('avb1', border ? t('f.avb1.tBorder') : t('f.avb1.t'), border ? 'hinweis' : 'auffaellig', border ? 'uncertain' : 'measured', t('f.avb1.x', { v: iv.pr }),
         { meaning: t('f.avb1.m'), advice: t('f.avb1.a'), evidence: [t('f.avb1.e', { v: iv.pr, acc: a.source === 'pdf' ? 20 : 10 })] }));
-    } else if (iv.pr < 110 && q.score >= 80) {
+    } else if (iv.pr < 110 && q.score >= 80 && Math.abs(iv.pProm || 0) >= 0.08) { // kleine P-Welle: Beginn zu unsicher für „kurze PR-Zeit“
       add(F('shortpr', t('f.shortpr.t'), 'hinweis', iv.pr < 100 && a.source !== 'pdf' ? 'measured' : 'uncertain', t('f.shortpr.x', { v: iv.pr }),
         { meaning: t('f.shortpr.m'), advice: t('f.shortpr.a'), evidence: [t('ev.pr', { v: iv.pr })] }));
     }

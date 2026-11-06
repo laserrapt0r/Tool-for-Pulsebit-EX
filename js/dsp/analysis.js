@@ -86,7 +86,7 @@ function corr(a, b) {
 // protectQrsLike/lateV erhöhen die VES-Erkennung bei Holter-EKGs, verursachen bei Handgerät-Aufnahmen aber viele Fehlalarme.
 export const P_OPT = { onsetFrac: 0.1 }; // P-Beginn/-Ende: Anteil der Prominenz (an LUDB geprüft)
 export const DET_OPT = { protectQrsLike: false, p2pFilter: true, lateV: false, searchBack: true, svesIqr: 1.5 };
-export const QRS_OPT = { k: 0.05, kOn: 0.05, iso: 0.25, holdMs: 10, lookMs: 0, lookFactor: 2.5, ampFrac: 0.15, advanceOn: false, moveOff: 0.08, floor: 0, floorOff: 0, humpFix: true }; // floor: Mindestschwelle der Steigung in (1/s)·R-Amplitude – nötig bei stark tiefpassgefilterten Geräten (Pulsebit: < 25 Hz) // advanceOn verschlechtert QRS/QT an LUDB (überspringt kleine Q-Zacken)
+export const QRS_OPT = { k: 0.05, kOn: 0.05, iso: 0.25, holdMs: 10, lookMs: 0, lookFactor: 2.5, ampFrac: 0.15, advanceOn: false, moveOff: 0.08, floor: 0, floorOff: 0, humpFix: true, crossFix: true, robustOnsetIso: true, robustIso: false }; // floor: Mindestschwelle der Steigung in (1/s)·R-Amplitude – nötig bei stark tiefpassgefilterten Geräten (Pulsebit: < 25 Hz) // advanceOn verschlechtert QRS/QT an LUDB (überspringt kleine Q-Zacken)
 /**
  * QRS-Beginn und -Ende am (Median-)Schlag. Kriterium: Steigung klein über 'holdMs' UND (optional) davor/danach
  * 'lookMs' lang keine steile Stelle UND Amplitude nahe der Grundlinie – damit weder der P-Gipfel (Steigung kurz null)
@@ -114,10 +114,19 @@ function qrsBounds(w, r, fs, isoLevel) {
     on = i; break;
   }
   if (on < 0) on = Math.round(r - 0.15 * fs);
+  // Liegt der Beginn deutlich über der Grundlinie (auf der P-Welle, die ohne PR-Strecke in die Q-Zacke übergeht),
+  // ist der QRS-Beginn die Stelle, an der die Kurve auf dem Weg in die Q-Zacke die Grundlinie kreuzt.
+  let crossed = false;
+  if (QRS_OPT.crossFix && w[on] - isoLevel(on) > Math.max(0.03 * rAmp, 0.025)) {
+    for (let j = on; j < r - Math.round(0.012 * fs); j++) {
+      if (w[j] - isoLevel(j) <= 0 && w[j + 1] <= w[j]) { on = j; crossed = true; break; }
+      if (ds[j] > 0.3 * mx) break; // schon im R-Anstieg: keine Kreuzung gefunden
+    }
+  }
   // Landet der Beginn auf einem Gipfel/Tal (P-Welle, die ohne PR-Strecke in die Q-Zacke übergeht – z. B. durch den
   // Hochpass-Unterschwinger mancher Geräte), ist das kein QRS-Beginn: vorwärts bis zum Knick suchen, an dem die
   // Steigung sprunghaft zunimmt (Übergang P-Schräge → Q-Zacke). Bei flacher PR-Strecke greift die Regel nie.
-  if (QRS_OPT.humpFix) {
+  if (QRS_OPT.humpFix && !crossed) {
     const e = Math.round(0.04 * fs), delta = 0.02;
     const a = on - e >= 0 ? w[on - e] : w[on], b = Math.min(w.length - 1, on + e) < r ? w[on + e] : w[on];
     // nur positive Gipfel (P-Welle); ein „Tal“ ist am echten QRS-Beginn normal (40 ms später liegt bereits der R-Anstieg)
@@ -164,10 +173,21 @@ function qrsBounds(w, r, fs, isoLevel) {
 function delineate(tpl, r, fs, rrMean, polarity) {
   const n = tpl.length;
   // vorläufige isoelektrische Linie: Median im Bereich 60–100 ms vor R
+  // Robuste Grundlinie: Pegel des flachsten 40-ms-Fensters in der TP-Strecke (100–360 ms vor R)
+  const tpBase = (() => {
+    const w = Math.round(0.04 * fs); let best = Infinity, lvl = null;
+    for (let a = Math.max(0, r - Math.round(0.36 * fs)); a + w <= r - Math.round(0.10 * fs); a += 2) {
+      let v = 0; for (let k = a + 1; k < a + w; k++) v += Math.abs(tpl[k] - tpl[k - 1]);
+      if (v < best) { best = v; lvl = median(Array.from(tpl.slice(a, a + w))); }
+    }
+    return lvl;
+  })();
   const preIso = median(Array.from(tpl.slice(Math.max(0, r - Math.round(0.1 * fs)), r - Math.round(0.06 * fs))));
-  const q = qrsBounds(tpl, r, fs, () => preIso);
-  // Isoelektrische Linie: kurzes Stück direkt vor QRS-Beginn (PR-Strecke)
-  const iso = median(Array.from(tpl.slice(Math.max(0, q.on - Math.round(0.02 * fs)), q.on + 1)));
+  const q = qrsBounds(tpl, r, fs, () => (QRS_OPT.robustOnsetIso && tpBase != null ? tpBase : preIso));
+  // Isoelektrische Linie: PR-Strecke (20 ms vor QRS-Beginn) – weicht sie deutlich vom TP-Niveau ab (P-Welle reicht bis
+  // an den QRS), gilt die TP-Grundlinie
+  const prIso = median(Array.from(tpl.slice(Math.max(0, q.on - Math.round(0.02 * fs)), q.on + 1)));
+  const iso = QRS_OPT.robustIso && tpBase != null && Math.abs(prIso - tpBase) > 0.03 ? tpBase : prIso;
   const rAmp = (tpl[r] - iso);
 
   // P-Welle: Suche 20–400 ms vor QRS-Beginn, frühestens nach der T-Welle des Vorschlags.

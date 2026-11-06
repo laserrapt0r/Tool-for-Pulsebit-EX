@@ -1,0 +1,19 @@
+# ── Persönliche Gesundheitsdaten / personal health data – niemals committen / never commit ──
+beispiele/
+*.pdf
+test/fixtures/
+test/out-*.json
+*.ecgfounder-ref.json
+ecg-backup-*.json
+ekg-sicherung-*.json
+checkme-hid.log
+
+# ── Werkzeuge / tooling ──
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+.vscode/
+.idea/
+*.log
+.DS_Store

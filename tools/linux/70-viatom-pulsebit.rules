@@ -1,0 +1,7 @@
+# Viatom/Lepu-Geräte (Pulsebit EX, Checkme) per USB-HID für den angemeldeten Benutzer freigeben.
+# Kennungen aus Checkme Browser Pro v2.5.3 ermittelt (hid_enumerate 4444:5555, hid_open c25a:330e).
+# Installation:  sudo cp 70-viatom-pulsebit.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+KERNEL=="hidraw*", ATTRS{idVendor}=="4444", ATTRS{idProduct}=="5555", MODE="0660", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="c25a", ATTRS{idProduct}=="330e", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="4444", ATTRS{idProduct}=="5555", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="c25a", ATTRS{idProduct}=="330e", MODE="0660", TAG+="uaccess"

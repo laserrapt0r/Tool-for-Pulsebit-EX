@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E2E-Test</title>
+<pre id="out">läuft…</pre>
+<script type="module">
+// Browser-Test der kompletten Kette mit synthetischen EKGs (Analyse, Befunde, KI im Worker, Speicherung).
+// Optional: ?pdf=datei.pdf (relativ zu beispiele/) testet zusätzlich den PDF-Import mit eigenen Dateien.
+import { importPdf } from '../js/import/importers.js';
+import { analyze } from '../js/dsp/analysis.js';
+import { interpret } from '../js/findings.js';
+import { runAI } from '../js/ai/ecgfounder.js';
+import { synthEcg } from '../js/demo.js';
+import { setLang } from '../js/i18n.js';
+const out = document.getElementById('out'), log = [];
+const p = s => { log.push(s); out.textContent = log.join('\n'); };
+try {
+  await setLang(new URLSearchParams(location.search).get('lang') || 'de');
+  const inputs = ['normal', 'pac', 'af', 'pvc'].map(k => ({ name: k, ...synthEcg(k) }));
+  for (const f of new URLSearchParams(location.search).getAll('pdf')) {
+    const blob = await (await fetch('../beispiele/' + encodeURIComponent(f))).blob();
+    const r = await importPdf(new File([blob], f)); inputs.push({ name: f, signal: r.signal, fs: r.fs, source: 'pdf' });
+  }
+  for (const d of inputs) {
+    const a = analyze(d.signal, d.fs); a.source = d.source || 'demo';
+    const t1 = performance.now();
+    const ai = await runAI(d.signal, d.fs, () => {});
+    p(`${d.name}: KI ${ai.backend} ${Math.round(performance.now() - t1)} ms, AF ${ai.labels['ATRIAL FIBRILLATION'].toFixed(2)} PAC ${ai.labels['PREMATURE ATRIAL COMPLEXES'].toFixed(2)} SR ${ai.labels['SINUS RHYTHM'].toFixed(2)}`);
+    const f = interpret(a, { ai });
+    p(`  [${f.overall}] ${f.headline}`);
+  }
+  p('FERTIG');
+} catch (e) { p('FEHLER: ' + (e.stack || e)); }
+</script>

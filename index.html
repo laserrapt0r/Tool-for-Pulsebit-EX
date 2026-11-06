@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>EKG · ECG</title>
+  <meta name="description" content="Local analysis of single-lead ECG recordings (Pulsebit EX / CheckMe) with measurements and AI – no cloud.">
+  <meta name="theme-color" content="#b91c1c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="EKG">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="#/" class="brand"><img src="icons/icon.svg" alt="" width="28" height="28"><span data-i18n="app.title">EKG</span></a>
+    <nav>
+      <a href="#/" data-nav="list" data-i18n="nav.records"></a>
+      <a href="#/geraet" data-nav="device" data-i18n="nav.device"></a>
+      <a href="#/personen" data-nav="persons" data-i18n="nav.persons"></a>
+      <a href="#/einstellungen" data-nav="settings" data-i18n="nav.settings"></a>
+      <a href="#/info" data-nav="info" data-i18n="nav.info"></a>
+      <button id="install" class="navbtn" hidden data-i18n="inst.button"></button>
+      <select id="lang" aria-label="Language"></select>
+    </nav>
+  </header>
+  <div class="disclaimer-bar" role="note" data-i18n="bar.disclaimer"></div>
+  <div id="update" class="update-bar" hidden role="status">
+    <span id="update-text"></span>
+    <button class="btn primary" id="update-now" data-i18n="upd.now"></button>
+    <button class="btn" id="update-later" data-i18n="upd.later"></button>
+  </div>
+  <main id="app" aria-live="polite"></main>
+  <div id="toast" class="toast" hidden></div>
+
+  <dialog id="disclaimer">
+    <h2 data-i18n="dlg.title"></h2>
+    <label class="row small" style="justify-content:flex-end"><span data-i18n="common.language"></span> <select id="dlg-lang"></select></label>
+    <p data-i18n="dlg.p1"></p>
+    <ul>
+      <li data-i18n="dlg.li1"></li>
+      <li data-i18n="dlg.li2"></li>
+      <li data-i18n="dlg.li3"></li>
+      <li data-i18n="dlg.li4"></li>
+    </ul>
+    <p data-i18n="dlg.p2"></p>
+    <form method="dialog"><button class="btn primary" value="ok" data-i18n="dlg.ok"></button></form>
+  </dialog>
+  <noscript>Diese App benötigt JavaScript. · This app requires JavaScript.</noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -60,7 +60,9 @@ export function detectRPeaks(x, fs) {
     } else out.push(p);
   }
   // Ausreißer mit sehr kleiner Amplitude verwerfen (Artefakte/T-Wellen)
-  const amps = out.map(p => polarity * x[p]);
+  // Ausreißer mit sehr kleinem Ausschlag verwerfen – gemessen als Spitze-Spitze-Höhe (auch nach unten gerichtete VES zählen)
+  const w = Math.round(0.06 * fs);
+  const amps = out.map(p => { if (!DET_OPT.p2pFilter) return polarity * x[p]; let mx = -Infinity, mn = Infinity; for (let k = Math.max(0, p - w); k <= Math.min(x.length - 1, p + w); k++) { mx = Math.max(mx, x[k]); mn = Math.min(mn, x[k]); } return mx - mn; });
   const mAmp = median(amps);
   peaks = out.filter((p, i) => amps[i] > 0.3 * mAmp);
   return { peaks, polarity };
@@ -80,25 +82,37 @@ function corr(a, b) {
 }
 
 /** QRS-Beginn/-Ende über die Steigung relativ zum Maximum (Indizes relativ zum Fenster). */
+// Schalter für Validierungsexperimente. Gewählt nach MIT-BIH (DS1) und CinC-2017-Normal-EKGs:
+// protectQrsLike/lateV erhöhen die VES-Erkennung bei Holter-EKGs, verursachen bei Handgerät-Aufnahmen aber viele Fehlalarme.
+export const DET_OPT = { protectQrsLike: false, p2pFilter: true, lateV: false };
+export const QRS_OPT = { lookahead: false, k: 0.05, kOn: 0.05, iso: 0.25 }; // gewählt an LUDB (ungerade Aufnahmen), geprüft an den geraden
 function qrsBounds(w, r, fs, isoLevel) {
   const d = new Float64Array(w.length);
   for (let i = 1; i < w.length - 1; i++) d[i] = Math.abs(w[i + 1] - w[i - 1]) / 2;
   const ds = movingAvg(d, 0.012 * fs);
   let mx = 0;
   for (let i = Math.max(0, r - 0.06 * fs); i < Math.min(w.length, r + 0.06 * fs); i++) mx = Math.max(mx, ds[Math.round(i)]);
-  const thr = 0.07 * mx, hold = Math.round(0.01 * fs);
+  const thr = QRS_OPT.k * mx, hold = Math.round(0.01 * fs), look = Math.round(0.04 * fs);
+  const maxIn = (a, b) => { let m = 0; for (let k = Math.max(0, a); k < Math.min(w.length, b); k++) m = Math.max(m, ds[k]); return m; };
   let on = Math.round(r - 0.15 * fs);
   for (let i = r; i > r - 0.15 * fs && i > hold; i--) {
     let quiet = true;
-    for (let k = 0; k < hold; k++) if (ds[i - k] > thr) quiet = false;
-    if (quiet) { on = i; break; }
+    for (let k = 0; k < hold; k++) if (ds[i - k] > (QRS_OPT.kOn ?? QRS_OPT.k) * mx) quiet = false;
+    // Beginn nur, wenn davor kein steiler Anteil mehr kommt (gekerbte/breite Komplexe)
+    if (quiet && (!QRS_OPT.lookahead || maxIn(i - hold - look, i - hold) < 3 * thr)) { on = i; break; }
   }
-  // Ende: nach R zuerst den steilen Abschnitt (inkl. S-Zacke) verlassen
-  let off = Math.round(r + 0.18 * fs);
+  // Ende: nach R den steilen Abschnitt (inkl. S-Zacke) verlassen; nur stoppen, wenn danach nichts Steiles mehr folgt
+  let off = -1;
   for (let i = r + Math.round(0.02 * fs); i < r + 0.22 * fs && i < w.length - hold; i++) {
     let quiet = true;
     for (let k = 0; k < hold; k++) if (ds[i + k] > thr * 1.3) quiet = false;
-    if (quiet && Math.abs(w[i] - isoLevel(i)) < 0.25 * Math.abs(w[r] - isoLevel(r))) { off = i; break; }
+    if (quiet && Math.abs(w[i] - isoLevel(i)) < QRS_OPT.iso * Math.abs(w[r] - isoLevel(r)) && (!QRS_OPT.lookahead || maxIn(i + hold, i + hold + look) < 3 * thr)) { off = i; break; }
+  }
+  if (off < 0) {
+    // nie ruhig: Ende des letzten steilen Abschnitts statt Fensterende
+    off = Math.round(r + 0.06 * fs);
+    if (QRS_OPT.lookahead) { for (let j = Math.min(w.length - 1, Math.round(r + 0.18 * fs)); j > r; j--) if (ds[j] > 3 * thr) { off = j + hold; break; } }
+    else off = Math.round(r + 0.18 * fs);
   }
   return { on, off };
 }
@@ -116,7 +130,7 @@ function delineate(tpl, r, fs, rrMean, polarity) {
   // P-Welle: Suche 20–400 ms vor QRS-Beginn, frühestens nach der T-Welle des Vorschlags.
   // Kriterium ist die Prominenz (Höhe über dem höheren der beiden Täler links/rechts) – robust auf T-Ausläufern.
   const prevTEnd = r - Math.round((rrMean - 0.33 * Math.sqrt(rrMean) - 0.06) * fs);
-  const pA = Math.max(1, q.on - Math.round(0.40 * fs), Math.min(prevTEnd, q.on - Math.round(0.12 * fs))), pB = q.on - Math.round(0.02 * fs);
+  const pA = Math.max(1, q.on - Math.round(0.40 * fs), Math.min(prevTEnd, q.on - Math.round(0.12 * fs))), pB = q.on - Math.round(0.01 * fs);
   let noise = 0;
   for (let i = pA + 1; i < pB; i++) noise += Math.abs(tpl[i] - tpl[i - 1]);
   noise /= Math.max(1, pB - pA - 1);
@@ -269,7 +283,14 @@ export function analyze(raw, fsIn) {
     const strongIdx = amps.map((v, i) => (v >= 0.5 * top ? i : -1)).filter(i => i >= 0);
     const tpl0 = medTpl(strongIdx.map(i => segs0[i]), segs0[0].length);
     const c0 = segs0.map(s => corr(qrsWin(s), qrsWin(tpl0)));
-    const strong = peaks.map((_, i) => amps[i] >= 0.6 * top && c0[i] >= 0.6);
+    // QRS-typisch: Spitze-Spitze-Höhe und Steilheit wie bei kräftigen Schlägen – solche Schläge (z. B. VES) nie verwerfen
+    const qw = Math.round(0.07 * fs);
+    const p2p = segs0.map(s => { let mx = -Infinity, mn = Infinity; for (let k = pre - qw; k <= pre + qw; k++) { mx = Math.max(mx, s[k]); mn = Math.min(mn, s[k]); } return mx - mn; });
+    const slope = segs0.map(s => { let m = 0; for (let k = pre - qw; k < pre + qw; k++) m = Math.max(m, Math.abs(s[k + 1] - s[k])); return m; });
+    const topP = [...p2p].sort((a, b) => b - a)[Math.floor(p2p.length * 0.25)] || p2p[0];
+    const topS = [...slope].sort((a, b) => b - a)[Math.floor(slope.length * 0.25)] || slope[0];
+    const qrsLike = peaks.map((_, i) => p2p[i] >= 0.6 * topP && slope[i] >= 0.45 * topS);
+    const strong = peaks.map((_, i) => (amps[i] >= 0.6 * top && c0[i] >= 0.6) || (DET_OPT.protectQrsLike && qrsLike[i]));
     const sp = peaks.filter((_, i) => strong[i]);
     const trueRR = sp.length >= 3 ? median(sp.slice(1).map((p, i) => (p - sp[i]) / fs)) : median(peaks.slice(1).map((p, i) => (p - peaks[i]) / fs));
     const drop = peaks.map((p, i) => {
@@ -300,7 +321,18 @@ export function analyze(raw, fsIn) {
   const good = segs.filter((_, i) => corrs[i] > 0.9 && notEarly[i]);
   if (good.length >= 3) tpl = medTpl(good, pre + post);
   const corrs2 = segs.map(s => corr(qrsWin(s), qrsWin(tpl)));
+  // Vergleichsabstand nur aus Intervallen zwischen zwei normal geformten Schlägen (sonst verfälschen häufige VES den Bezug)
+  const nnOk = rr.map((_, k) => corrs2[k] >= 0.85 && corrs2[k + 1] >= 0.85);
+  const nnVals = rr.filter((_, k) => nnOk[k]);
+  const localRefNN = i => {
+    const nb = [];
+    for (let k = Math.max(0, i - 6); k <= Math.min(rr.length - 1, i + 6); k++) if (k !== i && nnOk[k]) nb.push(rr[k]);
+    return nb.length >= 2 ? median(nb) : nnVals.length >= 3 ? median(nnVals) : localRef(i);
+  };
 
+  const qw2 = Math.round(0.07 * fs);
+  const p2pF = segs.map(s => { let mx = -Infinity, mn = Infinity; for (let k = pre - qw2; k <= pre + qw2; k++) { mx = Math.max(mx, s[k]); mn = Math.min(mn, s[k]); } return mx - mn; });
+  const p2pMed = median(p2pF);
   const tplQ = qrsBounds(tpl, pre, fs, () => baseAt(tpl));
   const tplW = (tplQ.off - tplQ.on) / fs;
   const tplAmp = tpl[pre] - baseAt(tpl);
@@ -312,12 +344,12 @@ export function analyze(raw, fsIn) {
     return {
       idx: p, t: p / fs, rrPrev: i > 0 ? rr[i - 1] : null, rrNext: i < rr.length ? rr[i] : null,
       corr: corrs2[i], width: (b.off - b.on) / fs, amp: s[pre] - iso, type: 'N',
-      edge: p / fs < edgeT || p / fs > duration - edgeT, ref: i > 0 ? localRef(i - 1) : rrMed,
+      edge: p / fs < edgeT || p / fs > duration - edgeT, ref: i > 0 ? localRefNN(i - 1) : rrMed,
     };
   });
 
   // ---- Schlagklassifikation ----
-  const nnLike = rr.filter((v, i) => v >= 0.88 * localRef(i));
+  const nnLike = rr.filter((v, i) => v >= 0.88 * localRefNN(i));
   const rrNormal = nnLike.length >= 3 ? median(nnLike) : mean(rr);
   for (const [i, b] of beats.entries()) {
     if (b.edge) continue; // Randschläge sind nicht beurteilbar
@@ -331,7 +363,9 @@ export function analyze(raw, fsIn) {
     const ampOdd = Math.abs(tplAmp) > 0 && (b.amp / tplAmp < 0.35 || b.amp / tplAmp > 2.5);
     const veryDifferent = b.corr < 0.7 || (b.corr < 0.8 && ampOdd) || (wide && b.corr < 0.85);
     // VES: deutlich andere Form, vorzeitig, mit Pause danach (oder Teil einer Salve)
-    if (veryDifferent && premature && (pauseAfter || compensatory)) b.type = 'V';
+    // nicht vorzeitige VES (spät einfallend, häufig bei gehäuften VES): nur bei eindeutig breiter, kräftiger, ganz anderer Form
+    const lateV = DET_OPT.lateV && !premature && b.corr < 0.6 && wide && p2pF[i] >= 0.8 * p2pMed && b.rrPrev != null;
+    if ((veryDifferent && premature && (pauseAfter || compensatory)) || lateV) b.type = 'V';
     else if (b.corr < 0.5) b.type = 'U';             // unklar/Artefakt
     else if (premature && abrupt && pauseAfter && b.corr >= 0.8) b.type = 'S';
     b.premature = premature;

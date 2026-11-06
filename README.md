@@ -45,18 +45,38 @@ measurements, beat analysis and an AI second opinion, no cloud.
 
 <sub>Alle Screenshots zeigen synthetische Demo-EKGs und erfundene Personen – keine echten Daten.</sub>
 
-### Genauigkeit (Vorhofflimmern)
-Geprüft an 3.537 ärztlich annotierten 1-Kanal-Handgerät-EKGs (PhysioNet/CinC Challenge 2017):
+### Validierung (gegen ärztlich beurteilte Daten)
+Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration/` und `test/validate-*.mjs` reproduzierbar. Schwellen wurden jeweils nur auf einem Teil der Daten gewählt und auf einem **unberührten** Teil gemessen.
+
+**Vorhofflimmern** – PhysioNet/CinC 2017, 3.537 Handgerät-EKGs, 20 zufällige Aufteilungen in Kalibrier-/Testhälfte:
 
 | Verfahren | Sensitivität | Spezifität |
 |---|---|---|
 | Messung allein | 77 % | 91 % |
-| KI allein (Schwelle 0,81) | 88 % | 95 % (AUC 0,974) |
-| **Kombination (App)** | **87 %** | **96 %** |
-| Stufe „wahrscheinlich“ | 70 % | 98 % (richtig in ~92 %) |
+| **Messung + KI (App)** | **90 %** (88–92) | **95 %** (94–96) |
+| Stufe „wahrscheinlich“ | 69 % | 98 % – Meldung richtig in ~93 % |
 
-Extrasystolen und Zeiten (PR/QRS/QT) sind nicht gegen ärztliche Vermessung validiert – die App sagt das bei jedem Befund.
-KI-Labels, die bei Handgeräten unzuverlässig sind (Schenkelblock, Hypertrophie, Lagetyp, AV-Block), werden nicht angezeigt.
+**Messwerte** – LUDB, 188 EKGs, Ableitung I, Markierungen durch Kardiologen:
+
+| Messung | innerhalb ±20 ms | mittlere Abweichung | Hinweis |
+|---|---|---|---|
+| QRS-Dauer | 87 % | 13 ms | breiter QRS (≥ 120 ms) in 9/14 erkannt, 4× fälschlich |
+| PR-Zeit | 83 % | 14 ms (im Mittel 10 ms zu kurz) | AV-Block I° in 6/8 erkannt |
+| QT-Zeit | 71 % (±40 ms: 92 %) | 22 ms | |
+| P-Welle bei Sinusrhythmus gefunden | 166/170 | | |
+
+**Extrasystolen** – MIT-BIH Arrhythmia, 30-s-Abschnitte, Testhälfte DS2 (22 Patienten, nicht zum Anpassen benutzt):
+
+| | gesamt | nur Sinusrhythmus |
+|---|---|---|
+| Herzschläge gefunden | 97,5 % | 99,3 % |
+| VES-Meldungen korrekt | 98 % | 97 % |
+| Abschnitte mit VES erkannt / Fehlalarm | 66 % / 2 % | 62 % / 1 % |
+| Abschnitte mit SVES erkannt / Fehlalarm | 32 % / 13 % | 74 % / 12 % |
+
+Bei Handgerät-EKGs ohne Rhythmusstörung (CinC „normal“) meldet die App in ~11 % eine VES und in ~19 % eine SVES, fast immer einen einzelnen Schlag mit Stufe „Hinweis“.
+
+**Bekannte Grenzen:** SVES-Salven und Vorhoftachykardien werden schlecht erkannt; bei Sinustachykardie über 120/min wird die P-Welle oft nicht gefunden (Meldung „Tachykardie ohne P-Wellen“). KI-Labels für Schenkelblock, Hypertrophie, Lagetyp und AV-Block werden nicht angezeigt.
 
 ### Nutzen
 - **Online:** [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) öffnen (Chrome/Edge; iPhone: Safari für Import, Bluetooth nur mit der App „Bluefy“).
@@ -125,18 +145,38 @@ tools/linux/checkme-browser.sh       # starten
 
 <sub>All screenshots show synthetic demo ECGs and fictitious people – no real data.</sub>
 
-### Accuracy (atrial fibrillation)
-Evaluated on 3,537 physician-annotated single-lead handheld ECGs (PhysioNet/CinC Challenge 2017):
+### Validation (against physician-reviewed data)
+All evaluations are reproducible with the scripts in `tools/validation/`, `tools/calibration/` and `test/validate-*.mjs`. Thresholds were always chosen on one part of the data and measured on an **untouched** part.
+
+**Atrial fibrillation** – PhysioNet/CinC 2017, 3,537 handheld ECGs, 20 random calibration/test splits:
 
 | Method | Sensitivity | Specificity |
 |---|---|---|
 | Measurements only | 77 % | 91 % |
-| AI only (threshold 0.81) | 88 % | 95 % (AUC 0.974) |
-| **Combination (app)** | **87 %** | **96 %** |
-| "Probable" level | 70 % | 98 % (correct in ~92 %) |
+| **Measurements + AI (app)** | **90 %** (88–92) | **95 %** (94–96) |
+| "Probable" level | 69 % | 98 % – correct in ~93 % |
 
-Premature beats and intervals (PR/QRS/QT) are not validated against physician measurements – the app states this for each finding.
-AI labels that are unreliable for handheld devices (bundle branch block, hypertrophy, axis, AV block) are not shown.
+**Measurements** – LUDB, 188 ECGs, lead I, annotated by cardiologists:
+
+| Measurement | within ±20 ms | mean abs. error | Note |
+|---|---|---|---|
+| QRS duration | 87 % | 13 ms | wide QRS (≥ 120 ms) detected in 9/14, 4 false |
+| PR interval | 83 % | 14 ms (on average 10 ms too short) | first-degree AV block detected in 6/8 |
+| QT interval | 71 % (±40 ms: 92 %) | 22 ms | |
+| P wave found in sinus rhythm | 166/170 | | |
+
+**Premature beats** – MIT-BIH Arrhythmia, 30-s segments, test half DS2 (22 patients, not used for tuning):
+
+| | overall | sinus rhythm only |
+|---|---|---|
+| Beats detected | 97.5 % | 99.3 % |
+| Reported PVCs correct | 98 % | 97 % |
+| Segments with PVCs detected / false alarm | 66 % / 2 % | 62 % / 1 % |
+| Segments with PACs detected / false alarm | 32 % / 13 % | 74 % / 12 % |
+
+In handheld ECGs without arrhythmia (CinC "normal") the app reports a PVC in ~11 % and a PAC in ~19 %, almost always a single beat at the "note" level.
+
+**Known limitations:** runs of PACs and atrial tachycardias are poorly detected; in sinus tachycardia above 120/min the P wave is often missed ("tachycardia without P waves"). AI labels for bundle branch block, hypertrophy, axis and AV block are not shown.
 
 ### Usage
 - **Online:** open [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) (Chrome/Edge; iPhone: Safari for import, Bluetooth only with the "Bluefy" app).
@@ -177,6 +217,6 @@ test/                  node tests, browser test (CDP)
 - This project: MIT (see [LICENSE](LICENSE))
 - ECGFounder model & code: MIT (PKUDigitalHealth) – [models/README.md](models/README.md)
 - ONNX Runtime Web: MIT (Microsoft) · pdf.js: Apache-2.0 (Mozilla)
-- QRS detection inspired by NeuroKit2 (MIT) · calibration data: PhysioNet/CinC Challenge 2017 (ODC-BY)
+- QRS detection inspired by NeuroKit2 (MIT) · validation data (not included): PhysioNet/CinC Challenge 2017, LUDB, MIT-BIH Arrhythmia Database (PhysioNet; see their licenses)
 
 Not affiliated with Viatom, Lepu, CheckMe or ViHealth.

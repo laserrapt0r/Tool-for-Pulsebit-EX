@@ -198,7 +198,7 @@ function delineate(tpl, r, fs, rrMean, polarity) {
   const ms = v => (v == null ? null : Math.round(v * 1000 / fs));
   const qt = tEnd != null ? ms(tEnd - q.on) : null;
   return {
-    iso, rAmp, qrsOn: q.on, qrsOff: q.off, pOn, pOff, pPeak: pPresent ? pPeak : null, pAmp: pPresent ? pAmp : 0, pProm: pPresent ? sg * prom : 0, pPresent,
+    iso, rAmp, qrsOn: q.on, qrsOff: q.off, pOn, pOff, pPeak: pPresent ? pPeak : null, pAmp: pPresent ? pAmp : 0, pProm: pPresent ? sg * prom : 0, pNoise: noise, pPresent,
     tPeak: tPeak > 0 ? tPeak : null, tAmp, tEnd, qtReliable, tNoise,
     pr: pPresent ? ms(q.on - pOn) : null,
     pDur: pPresent ? ms(pOff - pOn) : null,

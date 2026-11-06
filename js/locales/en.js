@@ -370,4 +370,5 @@ export default {
   'f.qt.xUnsure': 'The rate-corrected QT interval measured {qtc} ms ({method}), but the end of the T wave is not clear in this recording: the T wave is small, noisy or merges into another wave.',
   'f.qt.mUnsure': 'With handheld devices such values usually come from measurement error, not from a true QT prolongation. A reliable QT measurement needs a quiet signal with a distinct T wave.',
   'f.qt.aUnsure': 'Repeat the measurement at rest. If the value stays above 480 ms with good signal quality, see a doctor (bring your medication list).',
+  'f.sinus.xAI': 'The rhythm is regular; the P wave is very small in this lead, but the AI confirms sinus rhythm ({p} %) and sees no atrial fibrillation. Heart rate {hr}/min ({rate}).',
 };

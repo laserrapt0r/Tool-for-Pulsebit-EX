@@ -79,11 +79,12 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 
 | Datensatz | unauffällig | Hinweis | auffällig | ärztlich abklären |
 |---|---|---|---|---|
-| CinC 2017 „normal“, 1.500 Handgerät-EKGs (ohne KI) | 43 % | 43 % | 9 % | 6 % (davon 5 % Vorhofflimmern-Verdacht) |
+| CinC 2017 „normal“, 1.500 Handgerät-EKGs – **mit KI (wie in der App)** | 58 % | 30 % | 10 % | 2 % |
+| CinC 2017 „normal“ – ohne KI | 56 % | 31 % | 7 % | 6 % (davon 5 % Vorhofflimmern-Verdacht) |
 | LUDB Sinusrhythmus ohne Extrasystolen/Block, 90 Klinik-EKGs | 79 % | 18 % | 3 % | 0 % |
 | MIT-BIH Sinusrhythmus, nur Normalschläge, 615 Abschnitte¹ | 47 % | 29 % | 15 % | 8 % |
 
-¹ enthält Patienten mit echtem Schenkelblock/AV-Block (AAMI zählt diese Schläge als „normal“). Bei Handgerät-EKGs ohne Rhythmusstörung meldet die App in ~11 % eine VES und in ~12 % eine SVES, fast immer einen einzelnen Schlag mit Stufe „Hinweis“. Alarmstufen („auffällig“, „abklären“) werden nur vergeben, wenn die zugrunde liegende Messung als verlässlich gilt (Signalqualität, T-Wellen-Plausibilität, Messstreuung).
+¹ enthält Patienten mit echtem Schenkelblock/AV-Block (AAMI zählt diese Schläge als „normal“). Eine einzelne Extrasystole in 30 s gilt als Normalbefund (Stufe „Info“); Nutzungshinweise (Polarität, mäßige Signalqualität) ändern die Gesamtstufe nicht. Alarmstufen („auffällig“, „abklären“) werden nur vergeben, wenn die zugrunde liegende Messung als verlässlich gilt (Signalqualität, T-Wellen-Plausibilität, Messstreuung).
 
 **Bekannte Grenzen:** SVES-Salven und Vorhoftachykardien werden schlecht erkannt; bei Sinustachykardie über 120/min wird die P-Welle oft nicht gefunden (Meldung „Tachykardie ohne P-Wellen“). KI-Labels für Schenkelblock, Hypertrophie, Lagetyp und AV-Block werden nicht angezeigt.
 
@@ -192,11 +193,12 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 
 | Dataset | normal | note | notable | see a doctor |
 |---|---|---|---|---|
-| CinC 2017 "normal", 1,500 handheld ECGs (without AI) | 43 % | 43 % | 9 % | 6 % (of which 5 % suspected AF) |
+| CinC 2017 "normal", 1,500 handheld ECGs – **with AI (as in the app)** | 58 % | 30 % | 10 % | 2 % |
+| CinC 2017 "normal" – without AI | 56 % | 31 % | 7 % | 6 % (of which 5 % suspected AF) |
 | LUDB sinus rhythm without ectopy/block, 90 clinical ECGs | 79 % | 18 % | 3 % | 0 % |
 | MIT-BIH sinus rhythm, normal beats only, 615 segments¹ | 47 % | 29 % | 15 % | 8 % |
 
-¹ includes patients with genuine bundle branch block / AV block (AAMI counts those beats as "normal"). In handheld ECGs without arrhythmia the app reports a PVC in ~11 % and a PAC in ~12 %, almost always a single beat at the "note" level. Alert levels ("notable", "see a doctor") are only assigned when the underlying measurement is considered reliable (signal quality, T-wave plausibility, measurement scatter).
+¹ includes patients with genuine bundle branch block / AV block (AAMI counts those beats as "normal"). A single premature beat in 30 s counts as a normal finding ("info" level); usage hints (polarity, moderate signal quality) do not change the overall level. Alert levels ("notable", "see a doctor") are only assigned when the underlying measurement is considered reliable (signal quality, T-wave plausibility, measurement scatter).
 
 **Known limitations:** runs of PACs and atrial tachycardias are poorly detected; in sinus tachycardia above 120/min the P wave is often missed ("tachycardia without P waves"). AI labels for bundle branch block, hypertrophy, axis and AV block are not shown.
 

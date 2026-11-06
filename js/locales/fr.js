@@ -370,4 +370,5 @@ export default {
   'f.qt.xUnsure': 'L’intervalle QT corrigé a été mesuré à {qtc} ms ({method}), mais la fin de l’onde T n’est pas nette dans cet enregistrement : l’onde T est petite, bruitée ou se confond avec une autre onde.',
   'f.qt.mUnsure': 'Avec les appareils portables, de telles valeurs proviennent le plus souvent d’une erreur de mesure et non d’un véritable allongement du QT. Une mesure fiable du QT exige un signal calme avec une onde T nette.',
   'f.qt.aUnsure': 'Répétez la mesure au repos. Si la valeur reste au-dessus de 480 ms avec une bonne qualité de signal, consultez un médecin (apportez la liste de vos médicaments).',
+  'f.sinus.xAI': 'Le rythme est régulier ; l’onde P est très petite dans cette dérivation, mais l’IA confirme un rythme sinusal ({p} %) et ne voit pas de fibrillation atriale. Fréquence cardiaque {hr}/min ({rate}).',
 };

@@ -48,7 +48,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
   const reasons = (q.reasons || []).map(r => (typeof r === 'string' ? t(r) : t(r.k, r)));
 
   if (!a.beats?.length || q.score < 25) {
-    add(F('quality', t('f.quality.none.t'), 'auffaellig', 'measured', t('f.quality.none.x'), { advice: t('f.quality.none.a'), evidence: reasons }));
+    add(F('quality', t('f.quality.none.t'), 'hinweis', 'measured', t('f.quality.none.x'), { advice: t('f.quality.none.a'), evidence: reasons }));
     return summarize(out, a, ai);
   }
   const unsure = q.score < 60;
@@ -92,17 +92,21 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
       [fewP ? t('f.af.x1p') : t('f.af.x1'), t('f.af.x2'), cert === 'uncertain' ? t('f.af.x3') : ''].filter(Boolean).join(' '),
       { meaning: t('f.af.m'), advice: t('f.af.a') + (cert === 'uncertain' ? ' ' + t('f.af.a2') : ''), evidence: afEvidence }));
   } else if (afRule && hasAI) {
-    add(F('irregular', t('f.irr.t'), 'auffaellig', 'possible', t('f.irr.x'), { meaning: t('f.irr.m'), advice: t('f.irr.a'), evidence: afEvidence }));
+    add(F('irregular', t('f.irr.t'), pAF >= 0.3 ? 'auffaellig' : 'hinweis', 'possible', t('f.irr.x'), { meaning: t('f.irr.m'), advice: t('f.irr.a'), evidence: afEvidence }));
   }
 
   // ---------- Grundrhythmus & Frequenz ----------
   const hr = a.hrNN || a.hr;
-  const sinus = !isAF && iv.pPresent && a.pRatio >= 0.7;
+  const regularRhythm = hrv && hrv.nrmssd < 0.06;
+  // P-Welle in Ableitung I oft winzig: regelmäßiger Rhythmus + KI (kein Vorhofflimmern, Sinus hoch) bestätigt den Sinusrhythmus.
+  // Geprüft an CinC 2017: diese Kombination tritt bei keiner Vorhofflimmern-Aufnahme auf.
+  const sinusByAI = !isAF && !(iv.pPresent && a.pRatio >= 0.7) && regularRhythm && Number.isFinite(pAF) && pAF < 0.3 && (p['SINUS RHYTHM'] ?? 0) >= 0.9;
+  const sinus = !isAF && ((iv.pPresent && a.pRatio >= 0.7) || sinusByAI);
   const norm = hrNorm(age);
   const rate = t(hr < norm.mark ? 'rate.markedSlow' : hr < norm.lo ? 'rate.slow' : hr > norm.hi ? 'rate.fast' : 'rate.normal');
   if (sinus) {
     let title = t('f.sinus.t'), level = 'ok', id = 'sinus', meaning = t('f.sinus.m');
-    let text = norm.adult ? t('f.sinus.x', { hr, rate }) : t('f.sinus.xAge', { hr, rate, lo: norm.lo, hi: norm.hi });
+    let text = sinusByAI ? t('f.sinus.xAI', { hr, rate, p: pct(p['SINUS RHYTHM']) }) : norm.adult ? t('f.sinus.x', { hr, rate }) : t('f.sinus.xAge', { hr, rate, lo: norm.lo, hi: norm.hi });
     if (hr < norm.mark) { title = t('f.sinus.tBradyMarked'); id = 'sinus_brady'; level = hr < norm.mark - 10 ? 'auffaellig' : 'hinweis'; meaning = t('f.sinus.mBradyMarked'); }
     else if (hr < norm.lo) { title = t('f.sinus.tBrady'); id = 'sinus_brady'; level = 'ok'; meaning = t('f.sinus.mBrady'); }
     else if (hr > norm.hi) { title = t('f.sinus.tTachy'); id = 'sinus_tachy'; level = hr > norm.hi + 20 ? 'auffaellig' : 'hinweis'; meaning = t('f.sinus.mTachy'); }
@@ -114,12 +118,12 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
       meaning += ' ' + t('f.sinus.mSA');
     }
     const aiSR = p['SINUS RHYTHM'];
-    add(F(id, title, level, 'measured', text, {
+    add(F(id, title, level, sinusByAI ? 'probable' : 'measured', text, {
       headTitle, meaning, advice: level === 'auffaellig' ? t('f.sinus.a') : '',
       evidence: [t('ev.hrMean', { hr, n: beats.length }), t('ev.pBefore', { p: pR }), iv.pr ? t('ev.pr', { v: iv.pr }) : null, aiSR != null ? t('ev.aiSR', { p: pct(aiSR) }) : null].filter(Boolean),
     }));
   } else if (!isAF) {
-    const regular = hrv && hrv.nrmssd < 0.06;
+    const regular = regularRhythm;
     const wide = iv.qrs >= 120;
     if (regular && hr > norm.hi) {
       add(F('tachy_nop', wide ? t('f.tachy.tWide') : t('f.tachy.t'), 'abklaeren', 'possible',
@@ -129,7 +133,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
           evidence: [t('ev.hr', { hr }), t('ev.pRatio', { p: pR }), t('ev.qrs', { v: iv.qrs }), aiTxt('SUPRAVENTRICULAR TACHYCARDIA'), aiTxt('ATRIAL FLUTTER'), aiTxt('VENTRICULAR TACHYCARDIA')].filter(Boolean),
         }));
     } else if (regular && hr < norm.lo) {
-      add(F('brady_nop', t('f.bradynop.t'), 'auffaellig', 'possible', t('f.bradynop.x', { hr }),
+      add(F('brady_nop', t('f.bradynop.t'), hr < 45 ? 'auffaellig' : 'hinweis', 'possible', t('f.bradynop.x', { hr }),
         { meaning: t('f.bradynop.m'), advice: t('f.bradynop.a'), evidence: [t('ev.hr', { hr }), t('ev.pRatio', { p: pR }), aiTxt('JUNCTIONAL RHYTHM')].filter(Boolean) }));
     } else {
       add(F('rhythm_unclear', t('f.unclear.t', { hr }), 'hinweis', 'uncertain', regular ? t('f.unclear.xReg') : t('f.unclear.xIrr'),
@@ -144,7 +148,8 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     const big = pat.sBigeminy >= 3, tri = pat.sTrigeminy >= 3, runs = pat.sRuns;
     const aiS = Math.max(p['PREMATURE ATRIAL COMPLEXES'] ?? 0, p['PREMATURE SUPRAVENTRICULAR COMPLEXES'] ?? 0);
     const many = runs.length || nS / dur * 60 > 6;
-    add(F('sves', t(big ? 'f.sves.tBig' : tri ? 'f.sves.tTri' : 'f.sves.t', { n: nS }), many ? 'auffaellig' : 'hinweis',
+    const single = nS === 1 && !pat.sCouplets && q.score >= 80;
+    add(F('sves', t(big ? 'f.sves.tBig' : tri ? 'f.sves.tTri' : 'f.sves.t', { n: nS }), many ? 'auffaellig' : single ? 'info' : 'hinweis',
       aiSays('PREMATURE ATRIAL COMPLEXES') || aiSays('PREMATURE SUPRAVENTRICULAR COMPLEXES') ? 'probable' : 'measured',
       [t('f.sves.x', { n: nS, perMin: perMin(nS) }), pat.sCouplets ? t('f.sves.xCouplet', { n: pat.sCouplets }) : '',
         runs.length ? t('f.sves.xRuns', { n: runs.length, len: runs.join(', ') }) : '', big ? t('f.sves.xBig') : tri ? t('f.sves.xTri') : ''].filter(Boolean).join(' '),
@@ -155,7 +160,8 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     const comp = beats.filter(b => b.type === 'V' && b.compensatory).length;
     const title = runs.length ? t('f.ves.tRun', { len: Math.max(...runs) }) : t(big ? 'f.ves.tBig' : tri ? 'f.ves.tTri' : 'f.ves.t', { n: nV });
     const wideV = beats.some(b => b.type === 'V' && b.width >= 0.12);
-    add(F('ves', title, runs.length ? 'abklaeren' : pat.vCouplets || big || nV / dur * 60 > 6 ? 'auffaellig' : 'hinweis', aiSays('PREMATURE VENTRICULAR COMPLEXES') ? 'probable' : 'possible',
+    const singleV = nV === 1 && !pat.vCouplets && q.score >= 80;
+    add(F('ves', title, runs.length ? 'abklaeren' : pat.vCouplets || big || nV / dur * 60 > 6 ? 'auffaellig' : singleV ? 'info' : 'hinweis', aiSays('PREMATURE VENTRICULAR COMPLEXES') ? 'probable' : 'possible',
       [t(wideV ? 'f.ves.xWide' : 'f.ves.x', { n: nV, perMin: perMin(nV) }), comp ? t('f.ves.xComp', { n: comp }) : '', pat.vCouplets ? t('f.ves.xCouplet', { n: pat.vCouplets }) : '',
         runs.length ? t('f.ves.xRuns', { n: runs.length }) : '', big ? t('f.ves.xBig') : ''].filter(Boolean).join(' '),
       { meaning: t('f.ves.m'), advice: runs.length ? t('f.ves.aRun') : t('f.ves.a'), evidence: [t('f.ves.e1'), aiTxt('PREMATURE VENTRICULAR COMPLEXES'), t('f.ves.e2')].filter(Boolean) }));
@@ -180,8 +186,10 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
 
   // ---------- Überleitung & Kammererregung ----------
   if (sinus && iv.pr != null) {
-    if (iv.pr > 200) {
-      const border = iv.pr <= (a.source === 'pdf' ? 230 : 220) || q.score < 80;
+    const prReliable = (iv.pProm ? Math.abs(iv.pProm) : 0) >= 8 * (iv.pNoise || 0) && q.score >= 80 && !sinusByAI;
+    // PR-Messgenauigkeit ±14 ms: erst ab 211 ms und nur bei deutlich erkennbarer P-Welle melden
+    if (iv.pr > 210 && prReliable) {
+      const border = iv.pr <= (a.source === 'pdf' ? 230 : 220);
       add(F('avb1', border ? t('f.avb1.tBorder') : t('f.avb1.t'), border ? 'hinweis' : 'auffaellig', border ? 'uncertain' : 'measured', t('f.avb1.x', { v: iv.pr }),
         { meaning: t('f.avb1.m'), advice: t('f.avb1.a'), evidence: [t('f.avb1.e', { v: iv.pr, acc: a.source === 'pdf' ? 20 : 10 })] }));
     } else if (iv.pr < 110 && q.score >= 80) {
@@ -229,13 +237,13 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     add(F('tneg', t('f.tneg.t'), 'hinweis', 'uncertain', t('f.tneg.x'), { meaning: t('f.tneg.m'), evidence: [t('f.tneg.e', { v: f1(iv.tAmp) })] }));
   }
   if (a.polarity < 0) {
-    add(F('polarity', t('f.pol.t'), 'hinweis', 'possible', t('f.pol.x'), { meaning: t('f.pol.m'), advice: t('f.pol.a') }));
+    add(F('polarity', t('f.pol.t'), 'info', 'possible', t('f.pol.x'), { meaning: t('f.pol.m'), advice: t('f.pol.a') }));
   }
 
   // ---------- KI-Hinweise ohne Bestätigung durch die Messung ----------
   if (ai?.labels) {
-    if (!isAF && afAI && !afRule) add(F('ai_af', t('f.aiaf.t'), 'auffaellig', 'possible', t('f.aiaf.x'), { advice: t('f.aiaf.a'), evidence: [aiTxt('ATRIAL FIBRILLATION')] }));
-    if (aiSays('ATRIAL FLUTTER') && !isAF) add(F('ai_afl', t('f.aiafl.t'), 'auffaellig', 'possible', t('f.aiafl.x'), { meaning: t('f.aiafl.m'), advice: t('f.aiafl.a'), evidence: [aiTxt('ATRIAL FLUTTER')] }));
+    if (!isAF && afAI && !afRule) add(F('ai_af', t('f.aiaf.t'), 'hinweis', 'possible', t('f.aiaf.x'), { advice: t('f.aiaf.a'), evidence: [aiTxt('ATRIAL FIBRILLATION')] }));
+    if (aiSays('ATRIAL FLUTTER') && !isAF) add(F('ai_afl', t('f.aiafl.t'), 'hinweis', 'possible', t('f.aiafl.x'), { meaning: t('f.aiafl.m'), advice: t('f.aiafl.a'), evidence: [aiTxt('ATRIAL FLUTTER')] }));
     if (!nV && aiSays('PREMATURE VENTRICULAR COMPLEXES')) add(F('ai_pvc', t('f.aipvc.t'), 'hinweis', 'uncertain', t('f.aipvc.x'), { evidence: [aiTxt('PREMATURE VENTRICULAR COMPLEXES'), nS ? t('f.aipvc.e', { n: nS }) : null].filter(Boolean) }));
   }
 

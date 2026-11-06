@@ -370,4 +370,5 @@ export default {
   'f.qt.xUnsure': 'Skorygowany odstęp QT zmierzono na {qtc} ms ({method}), ale koniec załamka T nie jest w tym zapisie jednoznaczny: załamek T jest mały, zaszumiony lub przechodzi w inną falę.',
   'f.qt.mUnsure': 'W urządzeniach przenośnych takie wartości wynikają najczęściej z błędu pomiaru, a nie z rzeczywistego wydłużenia QT. Wiarygodny pomiar QT wymaga spokojnego sygnału z wyraźnym załamkiem T.',
   'f.qt.aUnsure': 'Powtórz pomiar w spoczynku. Jeśli wartość przy dobrej jakości sygnału pozostaje powyżej 480 ms, skonsultuj się z lekarzem (zabierz listę leków).',
+  'f.sinus.xAI': 'Rytm jest miarowy; załamek P jest w tym odprowadzeniu bardzo mały, ale SI potwierdza rytm zatokowy ({p} %) i nie widzi migotania przedsionków. Częstość akcji serca {hr}/min ({rate}).',
 };

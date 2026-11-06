@@ -372,4 +372,5 @@ export default {
   'f.qt.xUnsure': 'Die frequenzkorrigierte QT-Zeit wurde mit {qtc} ms gemessen (nach {method}), das Ende der T-Welle ist in dieser Aufnahme aber nicht eindeutig: Die T-Welle ist klein, verrauscht oder geht in eine weitere Welle über.',
   'f.qt.mUnsure': 'Solche Werte entstehen bei Handgeräten meist durch Messfehler, nicht durch eine echte QT-Verlängerung. Eine verlässliche QT-Messung braucht ein ruhiges Signal mit deutlicher T-Welle.',
   'f.qt.aUnsure': 'Messung in Ruhe wiederholen. Bleibt der Wert bei guter Signalqualität über 480 ms, ärztlich abklären (Medikamentenliste mitnehmen).',
+  'f.sinus.xAI': 'Der Rhythmus ist regelmäßig; die P-Welle ist in dieser Ableitung sehr klein, die KI bestätigt aber einen Sinusrhythmus ({p} %) und sieht kein Vorhofflimmern. Herzfrequenz {hr}/min ({rate}).',
 };

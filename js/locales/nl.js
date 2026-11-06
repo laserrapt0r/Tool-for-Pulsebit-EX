@@ -370,4 +370,5 @@ export default {
   'f.qt.xUnsure': 'De frequentiegecorrigeerde QT-tijd is gemeten op {qtc} ms ({method}), maar het einde van de T-golf is in deze opname niet duidelijk: de T-golf is klein, verstoord of gaat over in een andere golf.',
   'f.qt.mUnsure': 'Bij draagbare apparaten ontstaan zulke waarden meestal door meetfouten, niet door een echte QT-verlenging. Een betrouwbare QT-meting vereist een rustig signaal met een duidelijke T-golf.',
   'f.qt.aUnsure': 'Meting in rust herhalen. Blijft de waarde bij goede signaalkwaliteit boven 480 ms, dan een arts raadplegen (medicatielijst meenemen).',
+  'f.sinus.xAI': 'Het ritme is regelmatig; de P-golf is in deze afleiding zeer klein, maar de AI bevestigt een sinusritme ({p} %) en ziet geen boezemfibrilleren. Hartfrequentie {hr}/min ({rate}).',
 };

@@ -370,4 +370,5 @@ export default {
   'f.qt.xUnsure': 'Hız düzeltmeli QT aralığı {qtc} ms ölçüldü ({method}); ancak bu kayıtta T dalgasının sonu net değil: T dalgası küçük, gürültülü ya da başka bir dalgaya karışıyor.',
   'f.qt.mUnsure': 'Taşınabilir cihazlarda bu tür değerler çoğunlukla gerçek bir QT uzamasından değil, ölçüm hatasından kaynaklanır. Güvenilir bir QT ölçümü, belirgin T dalgalı sakin bir sinyal gerektirir.',
   'f.qt.aUnsure': 'Ölçümü dinlenme halinde tekrarlayın. İyi sinyal kalitesinde değer 480 ms’nin üzerinde kalırsa hekime başvurun (ilaç listenizi götürün).',
+  'f.sinus.xAI': 'Ritim düzenli; bu derivasyonda P dalgası çok küçük, ancak yapay zekâ sinüs ritmini doğruluyor (%{p}) ve atriyal fibrilasyon görmüyor. Kalp hızı {hr}/dk ({rate}).',
 };

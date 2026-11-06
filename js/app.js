@@ -594,7 +594,7 @@ async function viewInfo() {
       <h2>${esc(t('i.licenses'))}</h2>
       <ul><li>${esc(t('i.lic1'))}</li><li>${esc(t('i.lic2'))}</li><li>${esc(t('i.lic3'))}</li><li>${esc(t('i.lic4'))}</li><li>${esc(t('i.lic5'))}</li></ul>
       <p>${esc(t('i.noAffil'))}</p>
-      <p>${esc(t('upd.version', { v: VERSION }))}</p>
+      <p>${esc(t('upd.version', { v: VERSION }))} · <a href="https://github.com/laserrapt0r/Tool-for-Pulsebit-EX" target="_blank" rel="noopener">${esc(t('i.source'))}</a></p>
     </div>`;
 }
 

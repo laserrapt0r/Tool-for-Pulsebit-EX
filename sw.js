@@ -3,7 +3,7 @@
 // Nutzer „Jetzt aktualisieren“ wählt (SKIP_WAITING) – oder spätestens, wenn alle App-Fenster geschlossen waren.
 // VERSION, HASH, BIG und SHELL werden von tools/release.mjs gepflegt – nicht von Hand ändern.
 const VERSION = '1.0.0';
-const HASH = 'e44fa071d9';
+const HASH = '629c87d098';
 const APP = `ekg-app-${VERSION}-${HASH}`;
 const BIG = 'ekg-big-bc211fb245'; // KI-Modell, WASM, pdf.js (Name enthält Inhalts-Hash)
 // <shell>
@@ -18,7 +18,7 @@ const SHELL = [
   'js/ai/labels.json#e953c4748a',
   'js/ai/thresholds.js#5145bc318d',
   'js/ai/worker.js#be32000c7f',
-  'js/app.js#1966e919d8',
+  'js/app.js#815fe52cc6',
   'js/demo.js#7bdcf0cca5',
   'js/device/transports.js#7cbef1834f',
   'js/device/viatom-protocol.js#f51e97ee7f',

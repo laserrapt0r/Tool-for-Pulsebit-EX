@@ -1,6 +1,6 @@
 # EKG-Auswertung · ECG Analysis
 
-**[Deutsch](#deutsch) · [English](#english)**
+**[Deutsch](#deutsch) · [English](#english)** · **▶ App: [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/)**
 
 Browser-App (PWA) zur **lokalen** Auswertung von 1-Kanal-EKGs des Viatom **Pulsebit EX** (CheckMe / Lookee) –
 Messwerte, Schlaganalyse und KI-Zweitmeinung, ohne Cloud. ·
@@ -59,7 +59,7 @@ Extrasystolen und Zeiten (PR/QRS/QT) sind nicht gegen ärztliche Vermessung vali
 KI-Labels, die bei Handgeräten unzuverlässig sind (Schenkelblock, Hypertrophie, Lagetyp, AV-Block), werden nicht angezeigt.
 
 ### Nutzen
-- **Online:** GitHub-Pages-Adresse dieses Repositorys öffnen (Chrome/Edge; iPhone: Safari für Import, Bluetooth nur mit der App „Bluefy“).
+- **Online:** [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) öffnen (Chrome/Edge; iPhone: Safari für Import, Bluetooth nur mit der App „Bluefy“).
 - **Installieren:** Menü „App installieren“ bzw. iPhone: Teilen → „Zum Home-Bildschirm“.
 - **Lokal:** `python3 -m http.server 8765` im Projektordner, dann `http://localhost:8765`.
 
@@ -139,7 +139,7 @@ Premature beats and intervals (PR/QRS/QT) are not validated against physician me
 AI labels that are unreliable for handheld devices (bundle branch block, hypertrophy, axis, AV block) are not shown.
 
 ### Usage
-- **Online:** open this repository's GitHub Pages URL (Chrome/Edge; iPhone: Safari for import, Bluetooth only with the "Bluefy" app).
+- **Online:** open [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) (Chrome/Edge; iPhone: Safari for import, Bluetooth only with the "Bluefy" app).
 - **Install:** browser menu "Install app", or on iPhone: Share → "Add to Home Screen".
 - **Locally:** `python3 -m http.server 8765` in the project folder, then `http://localhost:8765`.
 

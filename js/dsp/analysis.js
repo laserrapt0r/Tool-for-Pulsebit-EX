@@ -86,7 +86,7 @@ function corr(a, b) {
 // protectQrsLike/lateV erhöhen die VES-Erkennung bei Holter-EKGs, verursachen bei Handgerät-Aufnahmen aber viele Fehlalarme.
 export const P_OPT = { onsetFrac: 0.1 }; // P-Beginn/-Ende: Anteil der Prominenz (an LUDB geprüft)
 export const DET_OPT = { protectQrsLike: false, p2pFilter: true, lateV: false, searchBack: true, svesIqr: 1.5 };
-export const QRS_OPT = { k: 0.05, kOn: 0.05, iso: 0.25, holdMs: 10, lookMs: 0, lookFactor: 2.5, ampFrac: 0.15, advanceOn: false, moveOff: 0.08 }; // advanceOn verschlechtert QRS/QT an LUDB (überspringt kleine Q-Zacken)
+export const QRS_OPT = { k: 0.05, kOn: 0.05, iso: 0.25, holdMs: 10, lookMs: 0, lookFactor: 2.5, ampFrac: 0.15, advanceOn: false, moveOff: 0.08, floor: 0, floorOff: 0, humpFix: true }; // floor: Mindestschwelle der Steigung in (1/s)·R-Amplitude – nötig bei stark tiefpassgefilterten Geräten (Pulsebit: < 25 Hz) // advanceOn verschlechtert QRS/QT an LUDB (überspringt kleine Q-Zacken)
 /**
  * QRS-Beginn und -Ende am (Median-)Schlag. Kriterium: Steigung klein über 'holdMs' UND (optional) davor/danach
  * 'lookMs' lang keine steile Stelle UND Amplitude nahe der Grundlinie – damit weder der P-Gipfel (Steigung kurz null)
@@ -98,9 +98,11 @@ function qrsBounds(w, r, fs, isoLevel) {
   const ds = movingAvg(d, 0.012 * fs);
   let mx = 0;
   for (let i = Math.max(0, r - 0.06 * fs); i < Math.min(w.length, r + 0.06 * fs); i++) mx = Math.max(mx, ds[Math.round(i)]);
-  const thrOff = QRS_OPT.k * mx, thrOn = (QRS_OPT.kOn ?? QRS_OPT.k) * mx;
-  const hold = Math.max(2, Math.round(QRS_OPT.holdMs / 1000 * fs)), look = Math.round(QRS_OPT.lookMs / 1000 * fs);
   const rAmp = Math.abs(w[r] - isoLevel(r));
+  // ds ist mV je Abtastschritt; Untergrenze floor·R [mV/s] → je Abtastschritt: floor·R/fs
+  const flo = QRS_OPT.floor * rAmp / fs;
+  const thrOff = Math.max(QRS_OPT.k * mx, (QRS_OPT.floorOff ?? QRS_OPT.floor) * rAmp / fs), thrOn = Math.max((QRS_OPT.kOn ?? QRS_OPT.k) * mx, flo);
+  const hold = Math.max(2, Math.round(QRS_OPT.holdMs / 1000 * fs)), look = Math.round(QRS_OPT.lookMs / 1000 * fs);
   const maxIn = (a, b) => { let m = 0; for (let k = Math.max(0, a); k < Math.min(w.length, b); k++) m = Math.max(m, ds[k]); return m; };
   const nearBase = i => Math.abs(w[i] - isoLevel(i)) < Math.max(QRS_OPT.ampFrac * rAmp, 0.03);
   // Beginn: rückwärts ab R
@@ -112,6 +114,27 @@ function qrsBounds(w, r, fs, isoLevel) {
     on = i; break;
   }
   if (on < 0) on = Math.round(r - 0.15 * fs);
+  // Landet der Beginn auf einem Gipfel/Tal (P-Welle, die ohne PR-Strecke in die Q-Zacke übergeht – z. B. durch den
+  // Hochpass-Unterschwinger mancher Geräte), ist das kein QRS-Beginn: vorwärts bis zum Knick suchen, an dem die
+  // Steigung sprunghaft zunimmt (Übergang P-Schräge → Q-Zacke). Bei flacher PR-Strecke greift die Regel nie.
+  if (QRS_OPT.humpFix) {
+    const e = Math.round(0.04 * fs), delta = 0.02;
+    const a = on - e >= 0 ? w[on - e] : w[on], b = Math.min(w.length - 1, on + e) < r ? w[on + e] : w[on];
+    // nur positive Gipfel (P-Welle); ein „Tal“ ist am echten QRS-Beginn normal (40 ms später liegt bereits der R-Anstieg)
+    const isPeak = w[on] > a + delta && w[on] > b + delta;
+    if (isPeak) {
+      // mittlere Steigung der Schräge direkt nach dem Gipfel als Bezug
+      let ref = 0, n0 = 0;
+      for (let j = on + e; j < Math.min(r, on + Math.round(0.05 * fs)); j++) { ref += ds[j]; n0++; }
+      ref = n0 ? ref / n0 : thrOn;
+      let j = on + e;
+      while (j < r - Math.round(0.015 * fs) && ds[j] < Math.max(2 * ref, 2.5 * thrOn)) j++;
+      // auf den Beginn des Anstiegs zurück (bis die Steigung wieder unter 1,3·ref fällt)
+      while (j > on + e && ds[j - 1] >= Math.max(1.3 * ref, thrOn)) j--;
+      if (QRS_OPT.humpLog) QRS_OPT.humpLog.push({ on0: on, on1: j, r, peak: +(w[on] - a).toFixed(3), shift: Math.round((j - on) / fs * 1000) });
+      on = j;
+    }
+  }
   // Über flache, grundliniennahe Abschnitte (kleine Hügel/Kerben) bis zum letzten Punkt vor der QRS-Auslenkung vorrücken
   if (QRS_OPT.advanceOn) {
     const lim = Math.max(0.1 * rAmp, 0.03);

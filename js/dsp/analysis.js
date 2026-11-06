@@ -86,34 +86,53 @@ function corr(a, b) {
 // protectQrsLike/lateV erhöhen die VES-Erkennung bei Holter-EKGs, verursachen bei Handgerät-Aufnahmen aber viele Fehlalarme.
 export const P_OPT = { onsetFrac: 0.1 }; // P-Beginn/-Ende: Anteil der Prominenz (an LUDB geprüft)
 export const DET_OPT = { protectQrsLike: false, p2pFilter: true, lateV: false, searchBack: true, svesIqr: 1.5 };
-export const QRS_OPT = { lookahead: false, k: 0.05, kOn: 0.05, iso: 0.25 }; // gewählt an LUDB (ungerade Aufnahmen), geprüft an den geraden
+export const QRS_OPT = { k: 0.05, kOn: 0.05, iso: 0.25, holdMs: 10, lookMs: 0, lookFactor: 2.5, ampFrac: 0.15, advanceOn: false, moveOff: 0.08 }; // advanceOn verschlechtert QRS/QT an LUDB (überspringt kleine Q-Zacken)
+/**
+ * QRS-Beginn und -Ende am (Median-)Schlag. Kriterium: Steigung klein über 'holdMs' UND (optional) davor/danach
+ * 'lookMs' lang keine steile Stelle UND Amplitude nahe der Grundlinie – damit weder der P-Gipfel (Steigung kurz null)
+ * noch das S-Tal als Grenze gewählt wird.
+ */
 function qrsBounds(w, r, fs, isoLevel) {
   const d = new Float64Array(w.length);
   for (let i = 1; i < w.length - 1; i++) d[i] = Math.abs(w[i + 1] - w[i - 1]) / 2;
   const ds = movingAvg(d, 0.012 * fs);
   let mx = 0;
   for (let i = Math.max(0, r - 0.06 * fs); i < Math.min(w.length, r + 0.06 * fs); i++) mx = Math.max(mx, ds[Math.round(i)]);
-  const thr = QRS_OPT.k * mx, hold = Math.round(0.01 * fs), look = Math.round(0.04 * fs);
+  const thrOff = QRS_OPT.k * mx, thrOn = (QRS_OPT.kOn ?? QRS_OPT.k) * mx;
+  const hold = Math.max(2, Math.round(QRS_OPT.holdMs / 1000 * fs)), look = Math.round(QRS_OPT.lookMs / 1000 * fs);
+  const rAmp = Math.abs(w[r] - isoLevel(r));
   const maxIn = (a, b) => { let m = 0; for (let k = Math.max(0, a); k < Math.min(w.length, b); k++) m = Math.max(m, ds[k]); return m; };
-  let on = Math.round(r - 0.15 * fs);
+  const nearBase = i => Math.abs(w[i] - isoLevel(i)) < Math.max(QRS_OPT.ampFrac * rAmp, 0.03);
+  // Beginn: rückwärts ab R
+  let on = -1;
   for (let i = r; i > r - 0.15 * fs && i > hold; i--) {
-    let quiet = true;
-    for (let k = 0; k < hold; k++) if (ds[i - k] > (QRS_OPT.kOn ?? QRS_OPT.k) * mx) quiet = false;
-    // Beginn nur, wenn davor kein steiler Anteil mehr kommt (gekerbte/breite Komplexe)
-    if (quiet && (!QRS_OPT.lookahead || maxIn(i - hold - look, i - hold) < 3 * thr)) { on = i; break; }
+    if (maxIn(i - hold + 1, i + 1) > thrOn) continue;
+    if (look && maxIn(i - hold - look, i - hold + 1) > QRS_OPT.lookFactor * thrOn) continue;
+    if (look && !nearBase(i)) continue;
+    on = i; break;
   }
-  // Ende: nach R den steilen Abschnitt (inkl. S-Zacke) verlassen; nur stoppen, wenn danach nichts Steiles mehr folgt
+  if (on < 0) on = Math.round(r - 0.15 * fs);
+  // Über flache, grundliniennahe Abschnitte (kleine Hügel/Kerben) bis zum letzten Punkt vor der QRS-Auslenkung vorrücken
+  if (QRS_OPT.advanceOn) {
+    const lim = Math.max(0.1 * rAmp, 0.03);
+    let j = on;
+    while (j + 1 < r - Math.round(0.02 * fs) && Math.abs(w[j + 1] - isoLevel(j + 1)) < lim && ds[j + 1] < 2 * thrOn) j++;
+    on = j;
+  }
+  // Ende: vorwärts ab R + 20 ms (S-Zacke überspringen)
   let off = -1;
   for (let i = r + Math.round(0.02 * fs); i < r + 0.22 * fs && i < w.length - hold; i++) {
-    let quiet = true;
-    for (let k = 0; k < hold; k++) if (ds[i + k] > thr * 1.3) quiet = false;
-    if (quiet && Math.abs(w[i] - isoLevel(i)) < QRS_OPT.iso * Math.abs(w[r] - isoLevel(r)) && (!QRS_OPT.lookahead || maxIn(i + hold, i + hold + look) < 3 * thr)) { off = i; break; }
+    if (maxIn(i, i + hold) > thrOff * 1.3) continue;
+    if (!(Math.abs(w[i] - isoLevel(i)) < QRS_OPT.iso * rAmp)) continue;
+    if (look && maxIn(i + hold, i + hold + look) > QRS_OPT.lookFactor * thrOff) continue;
+    // kein S-Tal: in den folgenden 20 ms darf sich das Signal nicht mehr deutlich bewegen (langsamer Rückgang der S-Zacke)
+    if (QRS_OPT.moveOff) { const j = Math.min(w.length - 1, i + Math.round(0.02 * fs)); if (Math.abs(w[j] - w[i]) > QRS_OPT.moveOff * rAmp) continue; }
+    off = i; break;
   }
   if (off < 0) {
-    // nie ruhig: Ende des letzten steilen Abschnitts statt Fensterende
+    // nie ruhig: Ende des letzten steilen Abschnitts
     off = Math.round(r + 0.06 * fs);
-    if (QRS_OPT.lookahead) { for (let j = Math.min(w.length - 1, Math.round(r + 0.18 * fs)); j > r; j--) if (ds[j] > 3 * thr) { off = j + hold; break; } }
-    else off = Math.round(r + 0.18 * fs);
+    for (let j = Math.min(w.length - 1, Math.round(r + 0.18 * fs)); j > r; j--) if (ds[j] > 3 * thrOff) { off = j + hold; break; }
   }
   return { on, off };
 }

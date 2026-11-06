@@ -62,20 +62,28 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 | Messung | innerhalb ±20 ms | mittlere Abweichung | Hinweis |
 |---|---|---|---|
 | QRS-Dauer | 87 % | 13 ms | breiter QRS (≥ 120 ms) in 9/14 erkannt, 4× fälschlich |
-| PR-Zeit | 83 % | 14 ms (im Mittel 10 ms zu kurz) | AV-Block I° in 6/8 erkannt |
-| QT-Zeit | 71 % (±40 ms: 92 %) | 22 ms | |
+| PR-Zeit | 78 % | 14 ms (im Mittel 3 ms zu kurz) | AV-Block I° in 6/8 erkannt |
+| QT-Zeit | 74 % (±40 ms: 94 %) | 19 ms | nur „verlässliche“ Messungen lösen Befunde aus |
 | P-Welle bei Sinusrhythmus gefunden | 166/170 | | |
 
 **Extrasystolen** – MIT-BIH Arrhythmia, 30-s-Abschnitte, Testhälfte DS2 (22 Patienten, nicht zum Anpassen benutzt):
 
 | | gesamt | nur Sinusrhythmus |
 |---|---|---|
-| Herzschläge gefunden | 97,5 % | 99,3 % |
-| VES-Meldungen korrekt | 98 % | 97 % |
-| Abschnitte mit VES erkannt / Fehlalarm | 66 % / 2 % | 62 % / 1 % |
-| Abschnitte mit SVES erkannt / Fehlalarm | 32 % / 13 % | 74 % / 12 % |
+| Herzschläge gefunden | 97,6 % | 99,4 % |
+| VES-Meldungen korrekt | 98 % | 98 % |
+| Abschnitte mit VES erkannt / Fehlalarm | 67 % / 2 % | 66 % / 1 % |
+| Abschnitte mit SVES erkannt / Fehlalarm | 24 % / 8 % | 70 % / 8 % |
 
-Bei Handgerät-EKGs ohne Rhythmusstörung (CinC „normal“) meldet die App in ~11 % eine VES und in ~19 % eine SVES, fast immer einen einzelnen Schlag mit Stufe „Hinweis“.
+**Falsch-Positiv-Audit** – Gesamtstufe der App bei EKGs, die Ärzte als unauffällig beurteilt haben:
+
+| Datensatz | unauffällig | Hinweis | auffällig | ärztlich abklären |
+|---|---|---|---|---|
+| CinC 2017 „normal“, 1.500 Handgerät-EKGs (ohne KI) | 43 % | 43 % | 9 % | 6 % (davon 5 % Vorhofflimmern-Verdacht) |
+| LUDB Sinusrhythmus ohne Extrasystolen/Block, 90 Klinik-EKGs | 79 % | 18 % | 3 % | 0 % |
+| MIT-BIH Sinusrhythmus, nur Normalschläge, 615 Abschnitte¹ | 47 % | 29 % | 15 % | 8 % |
+
+¹ enthält Patienten mit echtem Schenkelblock/AV-Block (AAMI zählt diese Schläge als „normal“). Bei Handgerät-EKGs ohne Rhythmusstörung meldet die App in ~11 % eine VES und in ~12 % eine SVES, fast immer einen einzelnen Schlag mit Stufe „Hinweis“. Alarmstufen („auffällig“, „abklären“) werden nur vergeben, wenn die zugrunde liegende Messung als verlässlich gilt (Signalqualität, T-Wellen-Plausibilität, Messstreuung).
 
 **Bekannte Grenzen:** SVES-Salven und Vorhoftachykardien werden schlecht erkannt; bei Sinustachykardie über 120/min wird die P-Welle oft nicht gefunden (Meldung „Tachykardie ohne P-Wellen“). KI-Labels für Schenkelblock, Hypertrophie, Lagetyp und AV-Block werden nicht angezeigt.
 
@@ -167,20 +175,28 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 | Measurement | within ±20 ms | mean abs. error | Note |
 |---|---|---|---|
 | QRS duration | 87 % | 13 ms | wide QRS (≥ 120 ms) detected in 9/14, 4 false |
-| PR interval | 83 % | 14 ms (on average 10 ms too short) | first-degree AV block detected in 6/8 |
-| QT interval | 71 % (±40 ms: 92 %) | 22 ms | |
+| PR interval | 78 % | 14 ms (on average 3 ms too short) | first-degree AV block detected in 6/8 |
+| QT interval | 74 % (±40 ms: 94 %) | 19 ms | only “reliable” measurements trigger findings |
 | P wave found in sinus rhythm | 166/170 | | |
 
 **Premature beats** – MIT-BIH Arrhythmia, 30-s segments, test half DS2 (22 patients, not used for tuning):
 
 | | overall | sinus rhythm only |
 |---|---|---|
-| Beats detected | 97.5 % | 99.3 % |
-| Reported PVCs correct | 98 % | 97 % |
-| Segments with PVCs detected / false alarm | 66 % / 2 % | 62 % / 1 % |
-| Segments with PACs detected / false alarm | 32 % / 13 % | 74 % / 12 % |
+| Beats detected | 97.6 % | 99.4 % |
+| Reported PVCs correct | 98 % | 98 % |
+| Segments with PVCs detected / false alarm | 67 % / 2 % | 66 % / 1 % |
+| Segments with PACs detected / false alarm | 24 % / 8 % | 70 % / 8 % |
 
-In handheld ECGs without arrhythmia (CinC "normal") the app reports a PVC in ~11 % and a PAC in ~19 %, almost always a single beat at the "note" level.
+**False-positive audit** – overall level reported by the app for ECGs that physicians judged unremarkable:
+
+| Dataset | normal | note | notable | see a doctor |
+|---|---|---|---|---|
+| CinC 2017 "normal", 1,500 handheld ECGs (without AI) | 43 % | 43 % | 9 % | 6 % (of which 5 % suspected AF) |
+| LUDB sinus rhythm without ectopy/block, 90 clinical ECGs | 79 % | 18 % | 3 % | 0 % |
+| MIT-BIH sinus rhythm, normal beats only, 615 segments¹ | 47 % | 29 % | 15 % | 8 % |
+
+¹ includes patients with genuine bundle branch block / AV block (AAMI counts those beats as "normal"). In handheld ECGs without arrhythmia the app reports a PVC in ~11 % and a PAC in ~12 %, almost always a single beat at the "note" level. Alert levels ("notable", "see a doctor") are only assigned when the underlying measurement is considered reliable (signal quality, T-wave plausibility, measurement scatter).
 
 **Known limitations:** runs of PACs and atrial tachycardias are poorly detected; in sinus tachycardia above 120/min the P wave is often missed ("tachycardia without P waves"). AI labels for bundle branch block, hypertrophy, axis and AV block are not shown.
 

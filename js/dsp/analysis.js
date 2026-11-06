@@ -84,7 +84,8 @@ function corr(a, b) {
 /** QRS-Beginn/-Ende über die Steigung relativ zum Maximum (Indizes relativ zum Fenster). */
 // Schalter für Validierungsexperimente. Gewählt nach MIT-BIH (DS1) und CinC-2017-Normal-EKGs:
 // protectQrsLike/lateV erhöhen die VES-Erkennung bei Holter-EKGs, verursachen bei Handgerät-Aufnahmen aber viele Fehlalarme.
-export const DET_OPT = { protectQrsLike: false, p2pFilter: true, lateV: false };
+export const P_OPT = { onsetFrac: 0.1 }; // P-Beginn/-Ende: Anteil der Prominenz (an LUDB geprüft)
+export const DET_OPT = { protectQrsLike: false, p2pFilter: true, lateV: false, searchBack: true, svesIqr: 1.5 };
 export const QRS_OPT = { lookahead: false, k: 0.05, kOn: 0.05, iso: 0.25 }; // gewählt an LUDB (ungerade Aufnahmen), geprüft an den geraden
 function qrsBounds(w, r, fs, isoLevel) {
   const d = new Float64Array(w.length);
@@ -151,29 +152,45 @@ function delineate(tpl, r, fs, rrMean, polarity) {
   const pPresent = pPeak > 0 && prom > Math.max(0.025, 0.03 * Math.abs(rAmp)) && prom > 5 * noise;
   let pOn = null, pOff = null;
   if (pPresent) {
-    const lim = 0.2 * prom;
+    const lim = P_OPT.onsetFrac * prom;
     pOn = pPeak;
     while (pOn > Math.max(1, pPeak - Math.round(0.12 * fs)) && sg * (tpl[pOn] - base) > lim && !(sg * (tpl[pOn - 1] - tpl[pOn]) > 0.002 && pPeak - pOn > 0.02 * fs)) pOn--;
     pOff = pPeak;
     while (pOff < Math.min(q.on - 1, pPeak + Math.round(0.12 * fs)) && sg * (tpl[pOff] - base) > lim && !(sg * (tpl[pOff + 1] - tpl[pOff]) > 0.002 && pOff - pPeak > 0.02 * fs)) pOff++;
   }
 
-  // T-Welle: nach QRS-Ende bis min(R + 0.62·RR, R + 600 ms)
-  const tA = q.off + Math.round(0.06 * fs), tB = Math.min(n - 2, r + Math.round(Math.min(0.62 * rrMean, 0.6) * fs));
+  // T-Welle: Suchfenster endet frequenzabhängig (T-Gipfel liegt physiologisch vor ≈ 0,42·√RR + 100 ms nach R),
+  // damit nicht U-Welle, nächste P-Welle oder Rauschen als "T" gilt.
+  const tA = q.off + Math.round(0.06 * fs), tB = Math.min(n - 2, r + Math.round(Math.min(0.5 * rrMean, 0.42 * Math.sqrt(rrMean) + 0.1) * fs));
   let tPeak = -1, tAmp = 0;
   for (let i = tA; i < tB; i++) if (Math.abs(tpl[i] - iso) > Math.abs(tAmp)) { tAmp = tpl[i] - iso; tPeak = i; }
+  // Rauschen im T-Fenster (mittlere Punkt-zu-Punkt-Abweichung) für die Verlässlichkeit
+  let tNoise = 0;
+  for (let i = tA + 1; i < tB; i++) tNoise += Math.abs(tpl[i] - tpl[i - 1]);
+  tNoise /= Math.max(1, tB - tA - 1);
   let tEnd = null;
-  if (tPeak > 0 && Math.abs(tAmp) > 0.03) {
+  const tOk = tPeak > 0 && Math.abs(tAmp) >= Math.max(0.05, 0.06 * Math.abs(rAmp)) && Math.abs(tAmp) > 6 * tNoise * Math.sqrt(fs / 250);
+  if (tOk) {
     // Tangentenmethode: steilste Stelle des absteigenden T-Schenkels, Schnitt mit isoelektrischer Linie
     let best = tPeak, slope = 0;
     for (let i = tPeak + 1; i < Math.min(n - 1, tPeak + 0.15 * fs); i++) {
-      const s = (tpl[i + 1] - tpl[i - 1]) / 2;
-      if (Math.sign(-s) === Math.sign(tAmp) && Math.abs(s) > Math.abs(slope)) { slope = s; best = i; }
+      const sl = (tpl[i + 1] - tpl[i - 1]) / 2;
+      if (Math.sign(-sl) === Math.sign(tAmp) && Math.abs(sl) > Math.abs(slope)) { slope = sl; best = i; }
     }
     if (slope !== 0) {
       const xi = best + (iso - tpl[best]) / slope;
       if (xi > tPeak && xi < n) tEnd = xi;
     }
+  }
+  // Verlässlichkeit der QT-Messung: T-Welle ausgeprägt, nach dem T-Ende kehrt das Signal zur Grundlinie zurück
+  // (sonst U-Welle/P-Welle/Störung), QT physiologisch plausibel (≤ 65 % des RR-Abstands)
+  let qtReliable = false;
+  if (tEnd != null) {
+    const e = Math.round(tEnd), w0 = Math.min(n, e + Math.round(0.02 * fs)), w1 = Math.min(n, e + Math.round(0.09 * fs));
+    let after = 0;
+    for (let i = w0; i < w1; i++) after = Math.max(after, Math.abs(tpl[i] - iso));
+    const flat = w1 - w0 >= 3 && after <= Math.max(0.35 * Math.abs(tAmp), 0.04);
+    qtReliable = flat && (tEnd - q.on) / fs <= 0.65 * rrMean;
   }
   // ST-Strecke: J-Punkt + 60 ms
   const st = q.off + Math.round(0.06 * fs) < n ? tpl[q.off + Math.round(0.06 * fs)] - iso : null;
@@ -182,7 +199,7 @@ function delineate(tpl, r, fs, rrMean, polarity) {
   const qt = tEnd != null ? ms(tEnd - q.on) : null;
   return {
     iso, rAmp, qrsOn: q.on, qrsOff: q.off, pOn, pOff, pPeak: pPresent ? pPeak : null, pAmp: pPresent ? pAmp : 0, pProm: pPresent ? sg * prom : 0, pPresent,
-    tPeak: tPeak > 0 ? tPeak : null, tAmp, tEnd,
+    tPeak: tPeak > 0 ? tPeak : null, tAmp, tEnd, qtReliable, tNoise,
     pr: pPresent ? ms(q.on - pOn) : null,
     pDur: pPresent ? ms(pOff - pOn) : null,
     qrs: ms(q.off - q.on),
@@ -266,6 +283,8 @@ export function analyze(raw, fsIn) {
 
   let { peaks, polarity } = detectRPeaks(x, fs);
   res.polarity = polarity;
+  // Umgekehrt gepolt (Gerät seitenverkehrt gehalten): zur Auswertung spiegeln, damit P/T/ST-Logik stimmt
+  if (polarity < 0) { for (let i = 0; i < x.length; i++) x[i] = -x[i]; polarity = 1; res.signal = x; }
   // keine Schläge in Signallücken
   peaks = peaks.filter(p => !gaps.some(([a, b]) => p / fs >= a && p / fs <= b));
 
@@ -301,6 +320,34 @@ export function analyze(raw, fsIn) {
     if (!drop.some(Boolean)) break;
     removed += drop.filter(Boolean).length;
     peaks = peaks.filter((_, i) => !drop[i]);
+  }
+  // Rückwärtssuche: In Lücken von ≥ 1,6 × RR nach einem übersehenen, QRS-ähnlichen Schlag suchen
+  if (DET_OPT.searchBack && peaks.length >= 4) {
+    for (let iter = 0; iter < 3; iter++) {
+      const segs0 = peaks.map(p => segment(x, p, -pre, Math.round(0.4 * fs)));
+      const tpl0 = medTpl(segs0, segs0[0].length), tq = qrsWin(tpl0);
+      const rr0 = peaks.slice(1).map((p, i) => (p - peaks[i]) / fs), ref0 = median(rr0);
+      const qw = Math.round(0.07 * fs);
+      const p2pAt = k => { let mx = -Infinity, mn = Infinity; for (let j = Math.max(0, k - qw); j <= Math.min(x.length - 1, k + qw); j++) { mx = Math.max(mx, x[j]); mn = Math.min(mn, x[j]); } return mx - mn; };
+      const p2pRef = median(peaks.map(p2pAt));
+      const ins = [];
+      for (let i = 0; i < rr0.length; i++) {
+        if (rr0[i] < 1.6 * ref0) continue;
+        let best = -1, bc = 0;
+        for (let k = peaks[i] + Math.round(0.3 * fs); k <= peaks[i + 1] - Math.round(0.3 * fs); k += 2) {
+          if (p2pAt(k) < 0.4 * p2pRef) continue;
+          const c = corr(qrsWin(segment(x, k, -pre, Math.round(0.4 * fs))), tq);
+          if (c > bc) { bc = c; best = k; }
+        }
+        if (best >= 0 && bc >= 0.8) { // nur eindeutig QRS-förmige Schläge einsetzen (Rauschen in echten Pausen bleibt draußen)
+          let m = best; // auf die R-Spitze setzen
+          for (let j = best - Math.round(0.03 * fs); j <= best + Math.round(0.03 * fs); j++) if (j >= 0 && j < x.length && polarity * x[j] > polarity * x[m]) m = j;
+          ins.push(m);
+        }
+      }
+      if (!ins.length) break;
+      peaks = [...peaks, ...ins].sort((a, b) => a - b);
+    }
   }
   if (peaks.length < 3) {
     res.quality = { score: 0, label: 'none', reasons: [{ k: 'q.r.fewBeats' }] };
@@ -351,13 +398,18 @@ export function analyze(raw, fsIn) {
   // ---- Schlagklassifikation ----
   const nnLike = rr.filter((v, i) => v >= 0.88 * localRefNN(i));
   const rrNormal = nnLike.length >= 3 ? median(nnLike) : mean(rr);
+  // Streuung der normalen RR-Abstände (für die Ausreißerprüfung vorzeitiger Schläge; Sinusarrhythmie streut breit)
+  const nnQ1 = nnLike.length >= 4 ? percentile(nnLike, 0.25) : rrNormal, nnIqr = nnLike.length >= 4 ? percentile(nnLike, 0.75) - nnQ1 : 0;
+  const outlierLimit = DET_OPT.svesIqr > 0 ? nnQ1 - DET_OPT.svesIqr * Math.max(nnIqr, 0.02) : Infinity;
   for (const [i, b] of beats.entries()) {
     if (b.edge) continue; // Randschläge sind nicht beurteilbar
-    const premature = b.rrPrev != null && b.rrPrev < 0.82 * b.ref;
+    // Abstände zu Randschlägen (Einschwingbereich am Anfang/Ende) sind nicht beurteilbar
+    const prevEdge = i > 0 && beats[i - 1].edge, nextEdge = i + 1 < beats.length && beats[i + 1].edge;
+    const premature = !prevEdge && b.rrPrev != null && b.rrPrev < 0.82 * b.ref;
     const prevRR = i > 1 ? beats[i - 1].rrPrev : null;
     const abrupt = prevRR == null || b.rrPrev < 0.85 * prevRR;          // plötzlich (nicht allmählich wie bei Sinusarrhythmie)
     const nextPremature = i + 1 < beats.length && beats[i + 1].rrPrev < 0.82 * beats[i + 1].ref;
-    const pauseAfter = b.rrNext == null || nextPremature || (b.rrNext >= 0.9 * b.ref && b.rrNext >= 1.1 * b.rrPrev);
+    const pauseAfter = !nextEdge && (b.rrNext == null || nextPremature || (b.rrNext >= 0.9 * b.ref && b.rrNext >= 1.1 * b.rrPrev));
     const compensatory = premature && b.rrNext != null && b.rrPrev + b.rrNext >= 1.85 * rrNormal;
     const wide = b.width >= 0.12 && b.width > tplW + 0.04;
     const ampOdd = Math.abs(tplAmp) > 0 && (b.amp / tplAmp < 0.35 || b.amp / tplAmp > 2.5);
@@ -367,7 +419,7 @@ export function analyze(raw, fsIn) {
     const lateV = DET_OPT.lateV && !premature && b.corr < 0.6 && wide && p2pF[i] >= 0.8 * p2pMed && b.rrPrev != null;
     if ((veryDifferent && premature && (pauseAfter || compensatory)) || lateV) b.type = 'V';
     else if (b.corr < 0.5) b.type = 'U';             // unklar/Artefakt
-    else if (premature && abrupt && pauseAfter && b.corr >= 0.8) b.type = 'S';
+    else if (premature && abrupt && pauseAfter && b.corr >= 0.8 && b.rrPrev < outlierLimit) b.type = 'S';
     b.premature = premature;
     b.compensatory = compensatory;
   }

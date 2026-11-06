@@ -53,7 +53,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
   }
   const unsure = q.score < 60;
   if (q.score < 80) {
-    add(F('quality', t('f.quality.t', { label: t('q.l.' + q.label), score: q.score }), 'hinweis', 'measured', t('f.quality.x'),
+    add(F('quality', t('f.quality.t', { label: t('q.l.' + q.label), score: q.score }), unsure ? 'hinweis' : 'info', 'measured', t('f.quality.x'),
       { evidence: reasons, advice: unsure ? t('f.quality.a') : '' }));
   }
 
@@ -103,8 +103,8 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
   if (sinus) {
     let title = t('f.sinus.t'), level = 'ok', id = 'sinus', meaning = t('f.sinus.m');
     let text = norm.adult ? t('f.sinus.x', { hr, rate }) : t('f.sinus.xAge', { hr, rate, lo: norm.lo, hi: norm.hi });
-    if (hr < norm.mark) { title = t('f.sinus.tBradyMarked'); id = 'sinus_brady'; level = 'auffaellig'; meaning = t('f.sinus.mBradyMarked'); }
-    else if (hr < norm.lo) { title = t('f.sinus.tBrady'); id = 'sinus_brady'; level = 'hinweis'; meaning = t('f.sinus.mBrady'); }
+    if (hr < norm.mark) { title = t('f.sinus.tBradyMarked'); id = 'sinus_brady'; level = hr < norm.mark - 10 ? 'auffaellig' : 'hinweis'; meaning = t('f.sinus.mBradyMarked'); }
+    else if (hr < norm.lo) { title = t('f.sinus.tBrady'); id = 'sinus_brady'; level = 'ok'; meaning = t('f.sinus.mBrady'); }
     else if (hr > norm.hi) { title = t('f.sinus.tTachy'); id = 'sinus_tachy'; level = hr > norm.hi + 20 ? 'auffaellig' : 'hinweis'; meaning = t('f.sinus.mTachy'); }
     const sa = hrv && hrv.maxRR - hrv.minRR > 0.12 && hrv.nrmssd <= 0.08;
     let headTitle = title;
@@ -165,8 +165,14 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
   // Pausen, die eine Signallücke (Elektrodenkontakt verloren) überspannen, sind keine Herzpausen
   const inGap = (t0, t1) => (a.gaps || []).some(([g0, g1]) => t0 < g1 && t1 > g0);
   const pauses = a.rr.map((r, i) => ({ r, t: a.beats[i].t })).filter(x => x.r >= 2.0 && !inGap(x.t, x.t + x.r));
+  const refRR = a.hrv?.meanRR || 1;
   if (pauses.length) {
     const mx = Math.max(...pauses.map(x => x.r));
+    const doubled = pauses.every(x => x.r / refRR > 1.7 && x.r / refRR < 2.3); // ≈ 2 × RR: eher ein nicht erkannter Schlag als eine echte Pause
+    if (doubled || unsure) {
+      add(F('pause', t('f.pause.tMaybe', { s: f1(mx) }), 'hinweis', 'uncertain', t('f.pause.xMaybe', { n: pauses.length, s: f1(mx), at: f1(pauses[0].t) }),
+        { meaning: t('f.pause.mMaybe'), advice: t('f.pause.aMaybe'), evidence: pauses.map(x => t('f.pause.e', { s: f1(x.r), at: f1(x.t) })) }));
+    } else
     add(F('pause', t('f.pause.t', { s: f1(mx) }), mx >= 3 ? 'abklaeren' : 'auffaellig', 'measured',
       t('f.pause.x', { n: pauses.length, s: f1(mx), at: f1(pauses[0].t) }),
       { meaning: t('f.pause.m'), advice: mx >= 3 ? t('f.pause.aLong') : t('f.pause.a'), evidence: pauses.map(x => t('f.pause.e', { s: f1(x.r), at: f1(x.t) })) }));
@@ -175,45 +181,51 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
   // ---------- Überleitung & Kammererregung ----------
   if (sinus && iv.pr != null) {
     if (iv.pr > 200) {
-      const border = iv.pr <= (a.source === 'pdf' ? 230 : 215) || unsure;
+      const border = iv.pr <= (a.source === 'pdf' ? 230 : 220) || q.score < 80;
       add(F('avb1', border ? t('f.avb1.tBorder') : t('f.avb1.t'), border ? 'hinweis' : 'auffaellig', border ? 'uncertain' : 'measured', t('f.avb1.x', { v: iv.pr }),
         { meaning: t('f.avb1.m'), advice: t('f.avb1.a'), evidence: [t('f.avb1.e', { v: iv.pr, acc: a.source === 'pdf' ? 20 : 10 })] }));
-    } else if (iv.pr < 120) {
-      add(F('shortpr', t('f.shortpr.t'), 'hinweis', iv.pr < 100 && !unsure && a.source !== 'pdf' ? 'measured' : 'uncertain', t('f.shortpr.x', { v: iv.pr }),
+    } else if (iv.pr < 110 && q.score >= 80) {
+      add(F('shortpr', t('f.shortpr.t'), 'hinweis', iv.pr < 100 && a.source !== 'pdf' ? 'measured' : 'uncertain', t('f.shortpr.x', { v: iv.pr }),
         { meaning: t('f.shortpr.m'), advice: t('f.shortpr.a'), evidence: [t('ev.pr', { v: iv.pr })] }));
     }
   }
   if (iv.qrs != null) {
-    if (iv.qrs >= 120) {
+    if (iv.qrs >= 130 && q.score >= 70) {
       add(F('wideqrs', t('f.wideqrs.t'), 'auffaellig', unsure ? 'possible' : 'measured', t('f.wideqrs.x', { v: iv.qrs }),
         { meaning: t('f.wideqrs.m'), advice: t('f.wideqrs.a'), evidence: [t('ev.qrs', { v: iv.qrs })] }));
-    } else if (iv.qrs >= 110) {
+    } else if (iv.qrs >= 120) {
       add(F('qrsborder', t('f.qrsborder.t'), 'hinweis', 'uncertain', t('f.qrsborder.x', { v: iv.qrs }), { evidence: [t('ev.qrs', { v: iv.qrs })], meaning: t('f.qrsborder.m') }));
     }
   }
 
   // ---------- Repolarisation ----------
   if (iv.qtcB != null && !isAF) {
-    const useF = hr < 60 || hr > 90;
-    const qtc = useF ? iv.qtcF : iv.qtcB;
+    // Fridericia ist über den Herzfrequenzbereich stabiler (Bazett überkorrigiert > 60/min); beide werden angezeigt
+    const qtc = iv.qtcF, method = 'Fridericia';
     const lim = sex === 'w' ? 460 : sex === 'm' ? 450 : 455;
-    const method = useF ? 'Fridericia' : 'Bazett';
-    const ev = [`QT ${iv.qt} ms`, `QTc Bazett ${iv.qtcB} ms`, `QTc Fridericia ${iv.qtcF} ms`];
-    if (qtc >= 500) {
-      add(F('qtlong', t('f.qt.tMarked'), 'abklaeren', unsure ? 'possible' : 'measured', t('f.qt.xMarked', { qtc, method, qt: iv.qt }),
+    const ev = [`QT ${iv.qt} ms`, `QTc Fridericia ${iv.qtcF} ms`, `QTc Bazett ${iv.qtcB} ms`];
+    const reliable = iv.qtReliable && q.score >= 80 && hr >= 45 && hr <= 110;
+    if (qtc >= 500 && reliable) {
+      add(F('qtlong', t('f.qt.tMarked'), 'abklaeren', 'measured', t('f.qt.xMarked', { qtc, method, qt: iv.qt }),
         { meaning: t('f.qt.mMarked'), advice: t('f.qt.aMarked'), evidence: [...ev, t('f.qt.eTend')] }));
-    } else if (qtc > lim) {
+    } else if (qtc >= 480 && !reliable) {
+      add(F('qtunsure', t('f.qt.tUnsure'), 'hinweis', 'uncertain', t('f.qt.xUnsure', { qtc, method }),
+        { meaning: t('f.qt.mUnsure'), advice: t('f.qt.aUnsure'), evidence: [...ev, t('f.qt.eTend')] }));
+    } else if (qtc >= 470 && reliable) {
       add(F('qtlong', t('f.qt.t'), 'auffaellig', 'uncertain', t(sex ? 'f.qt.x' : 'f.qt.xNoSex', { qtc, method, lim }),
         { meaning: t('f.qt.m'), advice: t('f.qt.a'), evidence: ev }));
-    } else if (qtc < 340) {
+    } else if (qtc > lim && reliable) {
+      add(F('qtlong', t('f.qt.t'), 'hinweis', 'uncertain', t(sex ? 'f.qt.x' : 'f.qt.xNoSex', { qtc, method, lim }),
+        { meaning: t('f.qt.m'), advice: t('f.qt.a'), evidence: ev }));
+    } else if (qtc < 340 && reliable && iv.qtcB < 340) {
       add(F('qtshort', t('f.qt.tShort'), 'hinweis', 'uncertain', t('f.qt.xShort', { qtc, method }), { meaning: t('f.qt.mShort'), evidence: [`QT ${iv.qt} ms`] }));
     }
   }
-  if (iv.st != null && Math.abs(iv.st) >= 0.1 && !unsure && Math.abs(iv.rAmp) < 4) {
-    add(F('st', iv.st > 0 ? t('f.st.tUp') : t('f.st.tDown'), 'auffaellig', 'uncertain', t(iv.st > 0 ? 'f.st.xUp' : 'f.st.xDown', { v: f1(Math.abs(iv.st)) }),
+  if (iv.st != null && Math.abs(iv.st) >= 0.15 && q.score >= 80 && Math.abs(iv.rAmp) >= 0.4 && Math.abs(iv.rAmp) < 4 && (iv.qrs ?? 0) < 120) {
+    add(F('st', iv.st > 0 ? t('f.st.tUp') : t('f.st.tDown'), 'hinweis', 'uncertain', t(iv.st > 0 ? 'f.st.xUp' : 'f.st.xDown', { v: f1(Math.abs(iv.st)) }),
       { meaning: t('f.st.m'), advice: t('f.st.a'), evidence: [`ST ${iv.st > 0 ? '+' : ''}${f1(iv.st)} mV`] }));
   }
-  if (iv.tAmp < -0.05 && iv.rAmp > 0) {
+  if (iv.tAmp <= -0.1 && iv.rAmp >= 0.4 && q.score >= 80 && Math.abs(iv.tAmp) > 6 * (iv.tNoise || 0)) {
     add(F('tneg', t('f.tneg.t'), 'hinweis', 'uncertain', t('f.tneg.x'), { meaning: t('f.tneg.m'), evidence: [t('f.tneg.e', { v: f1(iv.tAmp) })] }));
   }
   if (a.polarity < 0) {
@@ -246,10 +258,10 @@ const RELIABILITY = {
   af: (f, a, ai) => (!ai?.labels ? t('r.afNoAI') : f.certainty === 'probable' ? t('r.afProb') : t('r.af') + (f.certainty === 'uncertain' ? ' ' + t('r.afNoisy') : '')),
   irregular: () => t('r.irregular'), sinus: () => t('r.sinus'), sinus_brady: () => t('r.hr'), sinus_tachy: () => t('r.hr'),
   rhythm_unclear: () => t('r.unclear'), tachy_nop: () => t('r.tachy'), brady_nop: () => t('r.bradynop'),
-  sves: f => t('r.sves') + (f.certainty === 'probable' ? ' ' + t('r.svesAI') : ''), ves: () => t('r.ves'), pause: () => t('r.pause'),
+  sves: f => t('r.sves') + (f.certainty === 'probable' ? ' ' + t('r.svesAI') : ''), ves: () => t('r.ves'), pause: f => (f.certainty === 'uncertain' ? t('r.pauseMaybe') : t('r.pause')),
   avb1: (f, a) => t('r.pr', { acc: acc(a) }), shortpr: (f, a) => t('r.pr', { acc: acc(a) }),
   wideqrs: (f, a) => t('r.qrs', { acc: acc(a) }), qrsborder: (f, a) => t('r.qrsBorder', { acc: acc(a) }),
-  qtlong: () => t('r.qt'), qtshort: () => t('r.qt'), st: () => t('r.st'), tneg: () => t('r.tneg'),
+  qtlong: () => t('r.qt'), qtshort: () => t('r.qt'), qtunsure: () => t('r.qt'), st: () => t('r.st'), tneg: () => t('r.tneg'),
   ai_af: () => t('r.aiaf'), ai_afl: () => t('r.aiafl'), ai_pvc: () => t('r.aipvc'), device: () => t('r.device'),
 };
 

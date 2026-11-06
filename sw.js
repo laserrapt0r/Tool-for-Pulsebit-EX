@@ -2,8 +2,8 @@
 // App-Dateien werden versioniert vorab geladen (cache-first). Eine neue Version wird aktiv, sobald der
 // Nutzer „Jetzt aktualisieren“ wählt (SKIP_WAITING) – oder spätestens, wenn alle App-Fenster geschlossen waren.
 // VERSION, HASH, BIG und SHELL werden von tools/release.mjs gepflegt – nicht von Hand ändern.
-const VERSION = '1.0.1';
-const HASH = '3af977c1f3';
+const VERSION = '1.0.2';
+const HASH = 'f89b85eedd';
 const APP = `ekg-app-${VERSION}-${HASH}`;
 const BIG = 'ekg-big-bc211fb245'; // KI-Modell, WASM, pdf.js (Name enthält Inhalts-Hash)
 // <shell>
@@ -18,7 +18,7 @@ const SHELL = [
   'js/ai/labels.json#e953c4748a',
   'js/ai/thresholds.js#5145bc318d',
   'js/ai/worker.js#be32000c7f',
-  'js/app.js#815fe52cc6',
+  'js/app.js#cdc789065b',
   'js/demo.js#7bdcf0cca5',
   'js/device/transports.js#7cbef1834f',
   'js/device/viatom-protocol.js#f51e97ee7f',
@@ -30,16 +30,16 @@ const SHELL = [
   'js/import/importers.js#392a0f2e25',
   'js/import/pdf-digitize.js#7d978fe456',
   'js/import/pulsebit-file.js#2e0f7be90e',
-  'js/locales/de.js#19b3a85a11',
-  'js/locales/en.js#82a0dbc691',
-  'js/locales/es.js#e02e1b6c43',
-  'js/locales/fr.js#e9eecbb18e',
-  'js/locales/it.js#1c036a4c9c',
-  'js/locales/nl.js#2eb0e48900',
-  'js/locales/pl.js#07fb4dc8b7',
-  'js/locales/tr.js#4232cada24',
-  'js/storage.js#bcf8921352',
-  'js/version.js#17dbcb63de',
+  'js/locales/de.js#53b1e9c118',
+  'js/locales/en.js#11acb44425',
+  'js/locales/es.js#30257d2b98',
+  'js/locales/fr.js#3df1464075',
+  'js/locales/it.js#545a35ba0f',
+  'js/locales/nl.js#95e0debeff',
+  'js/locales/pl.js#bcf943455f',
+  'js/locales/tr.js#f3e7238d72',
+  'js/storage.js#788fb54882',
+  'js/version.js#8d80c1611e',
   'manifest.webmanifest#7c731c3df7',
   'styles.css#19a3bed65f',
 ];

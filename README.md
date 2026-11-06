@@ -24,6 +24,7 @@ measurements, beat analysis and an AI second opinion, no cloud.
 | Rhythmus | Sinusrhythmus, Brady-/Tachykardie (altersgerecht), Sinusarrhythmie, Vorhofflimmern, Tachykardie ohne P-Wellen u. a. |
 | KI | **ECGFounder** 1-Kanal (MIT, 150 Labels), lokal per ONNX Runtime Web (WebGPU/WASM); nur Rhythmus-Labels werden gezeigt |
 | Befunde | Erklärung, Bedeutung, Empfehlung, Belege, Sicherheitsstufe und **„Wie verlässlich?“** je Befund |
+| Datenverwaltung | Sicherung/Wiederherstellung; Löschen einzeln, je Person oder alles (Einstellungen) |
 | Personen | Mehrere Personen (Name; optional Geschlecht und Geburtsdatum), Zuordnung, Filter, Pulsebit-Benutzer A/B |
 | Sprachen | Deutsch, English, Français, Español, Italiano, Nederlands, Polski, Türkçe |
 | PWA | Installierbar, offline nutzbar, Update-Hinweis bei neuer Version |
@@ -128,6 +129,7 @@ tools/linux/checkme-browser.sh       # starten
 | Rhythm | Sinus rhythm, brady-/tachycardia (age-adjusted), sinus arrhythmia, atrial fibrillation, tachycardia without P waves, … |
 | AI | **ECGFounder** single-lead (MIT, 150 labels), on-device via ONNX Runtime Web (WebGPU/WASM); only rhythm labels are shown |
 | Findings | Explanation, meaning, recommendation, evidence, certainty level and **"How reliable?"** for every finding |
+| Data management | Backup/restore; delete single recordings, per person or everything (Settings) |
 | People | Multiple people (name; optional sex and date of birth), assignment, filter, Pulsebit users A/B |
 | Languages | Deutsch, English, Français, Español, Italiano, Nederlands, Polski, Türkçe |
 | PWA | Installable, works offline, update prompt when a new version is published |

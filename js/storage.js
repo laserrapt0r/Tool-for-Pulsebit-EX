@@ -45,6 +45,18 @@ export async function listPersons() {
   return (all || []).sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
 export const newPersonId = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+/** Löscht alle Aufnahmen (optional nur einer Person). Gibt die Anzahl zurück. */
+export async function clearRecords(personId) {
+  const recs = await listRecords();
+  const del = personId === undefined ? recs : recs.filter(r => r.personId === personId);
+  if (personId === undefined) await tx('records', 'readwrite', s => s.clear());
+  else for (const r of del) await deleteRecord(r.id);
+  return del.length;
+}
+/** Löscht alle Aufnahmen, Personen und Einstellungen. */
+export async function clearAll() {
+  for (const st of ['records', 'persons', 'settings']) await tx(st, 'readwrite', s => s.clear());
+}
 export const getSetting = (k, def) => tx('settings', 'readonly', s => s.get(k)).then(v => (v === undefined ? def : v));
 export const setSetting = (k, v) => tx('settings', 'readwrite', s => s.put(v, k));
 

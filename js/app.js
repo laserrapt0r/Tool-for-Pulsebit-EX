@@ -2,7 +2,7 @@
 import { analyze } from './dsp/analysis.js';
 import { interpret, levelText, certText, hrNorm } from './findings.js';
 import { drawStrip, drawTemplate, drawRR } from './ecg-view.js';
-import { saveRecord, getRecord, deleteRecord, listRecords, getSetting, setSetting, recordId, exportAll, importBackup, listPersons, savePerson, deletePerson, newPersonId } from './storage.js';
+import { saveRecord, getRecord, deleteRecord, listRecords, getSetting, setSetting, recordId, exportAll, importBackup, listPersons, savePerson, deletePerson, newPersonId, clearRecords, clearAll } from './storage.js';
 import { importFile } from './import/importers.js';
 import { ViatomClient } from './device/viatom-protocol.js';
 import { connectBle, connectHid, support } from './device/transports.js';
@@ -492,9 +492,39 @@ async function viewSettings() {
       <p class="small muted">${esc(t('s.backupText'))}</p>
       <p class="small" id="storageinfo"></p>
       <div class="row"><button class="btn" id="backup">${esc(t('s.backupDl'))}</button><label class="btn">${esc(t('s.restore'))}<input id="restore" type="file" accept=".json" hidden></label></div>
+    </div>
+    <div class="card">
+      <h2>${esc(t('s.delete'))}</h2>
+      <p class="small muted">${esc(t('s.deleteText'))}</p>
+      ${persons.length ? `<div class="row" style="margin-bottom:10px"><select id="delperson">${persons.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}<option value="">${esc(t('list.noPerson'))}</option></select><button class="btn danger" id="delpersonrecs">${esc(t('s.delPersonRecs'))}</button></div>` : ''}
+      <div class="row"><button class="btn danger" id="delrecs">${esc(t('s.delRecs'))}</button><button class="btn danger" id="delall">${esc(t('s.delAll'))}</button></div>
     </div>`;
   $('#s-lang').value = lang();
   $('#s-lang').addEventListener('change', e => changeLang(e.target.value));
+  $('#delrecs').addEventListener('click', async () => {
+    const n = (await listRecords()).length;
+    if (!n) { toast(t('s.deleted', { n: 0 })); return; }
+    if (!confirm(t('s.delRecsConfirm', { n }))) return;
+    toast(t('s.deleted', { n: await clearRecords() }));
+    storageInfo().then(x => { const el = $('#storageinfo'); if (el) el.textContent = x; });
+  });
+  $('#delpersonrecs')?.addEventListener('click', async () => {
+    const pid = $('#delperson').value || null;
+    const recs = (await listRecords()).filter(r => (pid ? r.personId === pid : !personById(r.personId)));
+    if (!recs.length) { toast(t('s.deleted', { n: 0 })); return; }
+    const name = pid ? personById(pid)?.name : t('list.noPerson');
+    if (!confirm(t('s.delPersonConfirm', { n: recs.length, name }))) return;
+    for (const r of recs) await deleteRecord(r.id);
+    toast(t('s.deleted', { n: recs.length }));
+  });
+  $('#delall').addEventListener('click', async () => {
+    if (!confirm(t('s.delAllConfirm'))) return;
+    await clearAll();
+    persons = []; Object.assign(settings, { autoAI: true, personFilter: 'all', lang: settings.lang });
+    await saveAppSettings(); await setSetting('disclaimerAccepted', true);
+    toast(t('s.deletedAll'));
+    location.hash = '#/';
+  });
   $('#s-ai').addEventListener('change', async e => { settings.autoAI = e.target.checked; await saveAppSettings(); toast(t('common.saved')); });
   $('#chk').addEventListener('click', async () => {
     $('#chkstatus').textContent = t('upd.checking');

@@ -90,7 +90,7 @@ function runAnalysis(rec) {
   return { a, res };
 }
 function makeSummary(rec, a, res) {
-  return { hr: a.hrNN || a.hr, headline: res.headline, overall: res.overall, quality: a.quality?.score, duration: a.duration, lang: lang() };
+  return { hr: a.hrNN || a.hr, headline: res.headline, overall: res.overall, quality: a.quality?.score, duration: a.duration, lang: lang(), v: VERSION };
 }
 
 async function storeImported(r, personId = importTarget()) {
@@ -116,9 +116,9 @@ async function viewList() {
   const all = await listRecords();
   if (settings.personFilter !== 'all' && settings.personFilter !== 'none' && !personById(settings.personFilter)) settings.personFilter = 'all';
   const recs = all.filter(r => settings.personFilter === 'all' || (settings.personFilter === 'none' ? !personById(r.personId) : r.personId === settings.personFilter));
-  // Zusammenfassungen in der aktuellen Sprache nachziehen
+  // Kurzfassungen nachziehen, wenn Sprache oder App-Version (= Auswertungsregeln) sich geändert haben
   for (const r of recs) {
-    if (r.summary?.lang !== lang()) { const { a, res } = runAnalysis(r); r.summary = makeSummary(r, a, res); saveRecord(r); }
+    if (r.summary?.lang !== lang() || r.summary?.v !== VERSION) { const { a, res } = runAnalysis(r); r.summary = makeSummary(r, a, res); saveRecord(r); }
   }
   const target = personById(importTarget());
   app.innerHTML = `

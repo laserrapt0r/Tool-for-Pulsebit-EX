@@ -2,8 +2,8 @@
 // App-Dateien werden versioniert vorab geladen (cache-first). Eine neue Version wird aktiv, sobald der
 // Nutzer „Jetzt aktualisieren“ wählt (SKIP_WAITING) – oder spätestens, wenn alle App-Fenster geschlossen waren.
 // VERSION, HASH, BIG und SHELL werden von tools/release.mjs gepflegt – nicht von Hand ändern.
-const VERSION = '1.0.2';
-const HASH = 'f89b85eedd';
+const VERSION = '1.0.3';
+const HASH = '28e27b17f2';
 const APP = `ekg-app-${VERSION}-${HASH}`;
 const BIG = 'ekg-big-bc211fb245'; // KI-Modell, WASM, pdf.js (Name enthält Inhalts-Hash)
 // <shell>
@@ -17,7 +17,7 @@ const SHELL = [
   'js/ai/ecgfounder.js#7a0a289f97',
   'js/ai/labels.json#e953c4748a',
   'js/ai/thresholds.js#5145bc318d',
-  'js/ai/worker.js#be32000c7f',
+  'js/ai/worker.js#fb7fbf9442',
   'js/app.js#cdc789065b',
   'js/demo.js#7bdcf0cca5',
   'js/device/transports.js#7cbef1834f',
@@ -39,7 +39,7 @@ const SHELL = [
   'js/locales/pl.js#bcf943455f',
   'js/locales/tr.js#f3e7238d72',
   'js/storage.js#788fb54882',
-  'js/version.js#8d80c1611e',
+  'js/version.js#e9684631be',
   'manifest.webmanifest#7c731c3df7',
   'styles.css#19a3bed65f',
 ];

@@ -6,19 +6,26 @@ ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.min(4, navigator.hardw
 
 let session = null, labels = null, backend = '';
 
+// Bekannte Modellgröße (unkomprimiert) für die Fortschrittsanzeige. Content-Length ist bei
+// komprimierter Auslieferung (z. B. GitHub Pages: gzip) kleiner als die tatsächlich empfangenen Bytes.
+const MODEL_BYTES = 61940022;
 async function fetchWithProgress(url, onProgress) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(JSON.stringify({ k: 'ai.noModel', status: res.status }));
-  const total = +res.headers.get('content-length') || 0;
-  if (!res.body || !total) return new Uint8Array(await res.arrayBuffer());
-  const reader = res.body.getReader(), buf = new Uint8Array(total);
+  if (!res.body) return new Uint8Array(await res.arrayBuffer());
+  const encoded = !!res.headers.get('content-encoding');
+  const total = (!encoded && +res.headers.get('content-length')) || MODEL_BYTES;
+  const reader = res.body.getReader(), chunks = [];
   let got = 0;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    buf.set(value, got); got += value.length;
-    onProgress(got / total);
+    chunks.push(value); got += value.length;
+    onProgress(Math.min(0.99, got / total));
   }
+  const buf = new Uint8Array(got);
+  let o = 0;
+  for (const c of chunks) { buf.set(c, o); o += c.length; }
   return buf;
 }
 

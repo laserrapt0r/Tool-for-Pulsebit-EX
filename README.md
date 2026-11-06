@@ -79,7 +79,7 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 
 | Datensatz | unauffällig | Hinweis | auffällig | ärztlich abklären |
 |---|---|---|---|---|
-| CinC 2017 „normal“, 1.500 Handgerät-EKGs – **mit KI (wie in der App)** | 58 % | 30 % | 10 % | 2 % |
+| CinC 2017 „normal“, 1.500 Handgerät-EKGs – **mit KI (wie in der App)** | 58 % | 31 % | 9 % | 2 % |
 | CinC 2017 „normal“ – ohne KI | 56 % | 31 % | 7 % | 6 % (davon 5 % Vorhofflimmern-Verdacht) |
 | LUDB Sinusrhythmus ohne Extrasystolen/Block, 90 Klinik-EKGs | 79 % | 18 % | 3 % | 0 % |
 | MIT-BIH Sinusrhythmus, nur Normalschläge, 615 Abschnitte¹ | 47 % | 29 % | 15 % | 8 % |
@@ -193,7 +193,7 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 
 | Dataset | normal | note | notable | see a doctor |
 |---|---|---|---|---|
-| CinC 2017 "normal", 1,500 handheld ECGs – **with AI (as in the app)** | 58 % | 30 % | 10 % | 2 % |
+| CinC 2017 "normal", 1,500 handheld ECGs – **with AI (as in the app)** | 58 % | 31 % | 9 % | 2 % |
 | CinC 2017 "normal" – without AI | 56 % | 31 % | 7 % | 6 % (of which 5 % suspected AF) |
 | LUDB sinus rhythm without ectopy/block, 90 clinical ECGs | 79 % | 18 % | 3 % | 0 % |
 | MIT-BIH sinus rhythm, normal beats only, 615 segments¹ | 47 % | 29 % | 15 % | 8 % |

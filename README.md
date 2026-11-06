@@ -90,6 +90,10 @@ Bei Handgerät-EKGs ohne Rhythmusstörung (CinC „normal“) meldet die App in 
 | iPhone/iPad – Safari | – | – | ✔ |
 | iPhone/iPad – Bluefy | ✔ | – | ✔ |
 
+**USB unter Linux:** Chrome darf das Gerät erst nach Installation der udev-Regel öffnen (sonst „Failed to open the device“):
+`sudo cp tools/linux/70-viatom-pulsebit.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger`, danach Gerät neu einstecken.
+Hinweis: Das USB-Protokoll des Pulsebit unterscheidet sich vom Bluetooth-Protokoll und wird noch ermittelt (`tools/linux/usb-capture.sh`). Bluetooth ist der empfohlene Weg.
+
 ### Veröffentlichen & Updates
 1. Repository auf GitHub anlegen, pushen, unter *Settings → Pages* „Deploy from branch“ (`main`, `/`) wählen.
 2. Für eine neue Version: `node tools/release.mjs patch` (setzt Version, erneuert die Dateiliste des Service Workers), committen, pushen.
@@ -189,6 +193,10 @@ In handheld ECGs without arrhythmia (CinC "normal") the app reports a PVC in ~11
 | Android – Chrome | ✔ | – | ✔ |
 | iPhone/iPad – Safari | – | – | ✔ |
 | iPhone/iPad – Bluefy | ✔ | – | ✔ |
+
+**USB on Linux:** Chrome can only open the device after installing the udev rule (otherwise "Failed to open the device"):
+`sudo cp tools/linux/70-viatom-pulsebit.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger`, then replug the device.
+Note: the Pulsebit's USB protocol differs from its Bluetooth protocol and is still being worked out (`tools/linux/usb-capture.sh`). Bluetooth is the recommended way.
 
 ### Publishing & updates
 1. Create a GitHub repository, push, and enable *Settings → Pages* "Deploy from branch" (`main`, `/`).

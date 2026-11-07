@@ -113,7 +113,7 @@ Die App misst das T-Ende nach der Tangentenmethode und damit systematisch etwa 2
 
 **USB unter Linux:** Chrome darf das Gerät erst nach Installation der udev-Regel öffnen (sonst „Failed to open the device“):
 `sudo cp tools/linux/70-viatom-pulsebit.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger`, danach Gerät neu einstecken.
-Hinweis: Das USB-Protokoll des Pulsebit unterscheidet sich vom Bluetooth-Protokoll und wird noch ermittelt (`tools/linux/usb-capture.sh`). Bluetooth ist der empfohlene Weg.
+Hinweis zu USB: Der Pulsebit spricht über USB ein eigenes Protokoll („sdumper2“), das aus einem Mitschnitt (`tools/linux/usb-capture.sh`) und Checkme Browser Pro ermittelt und am Gerät geprüft wurde. Das Gerät verträgt nach dem Einstecken genau eine Begrüßung als allererste Nachricht. Danach blockiert es bis zum Neueinstecken, deshalb Checkme Browser nicht parallel öffnen. Reagiert das Gerät nicht mehr: Kabel kurz abziehen, wieder anstecken, „Zum PC“ wählen und neu verbinden. Die Uhr des Geräts lässt sich nur über Bluetooth stellen.
 
 ### Veröffentlichen & Updates
 1. Repository auf GitHub anlegen, pushen, unter *Settings → Pages* „Deploy from branch“ (`main`, `/`) wählen.
@@ -238,7 +238,7 @@ The app measures the T end with the tangent method and therefore systematically 
 
 **USB on Linux:** Chrome can only open the device after installing the udev rule (otherwise "Failed to open the device"):
 `sudo cp tools/linux/70-viatom-pulsebit.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger`, then replug the device.
-Note: the Pulsebit's USB protocol differs from its Bluetooth protocol and is still being worked out (`tools/linux/usb-capture.sh`). Bluetooth is the recommended way.
+USB note: over USB the Pulsebit speaks its own protocol ("sdumper2"), reconstructed from a capture (`tools/linux/usb-capture.sh`) and Checkme Browser Pro and verified on the device. After being plugged in, the device accepts exactly one greeting as the very first message. After that it blocks until replugged, so do not open Checkme Browser at the same time. If the device stops responding: briefly unplug the cable, plug it back in, select "To PC" and connect again. The device clock can only be set via Bluetooth.
 
 ### Publishing & updates
 1. Create a GitHub repository, push, and enable *Settings → Pages* "Deploy from branch" (`main`, `/`).

@@ -5,6 +5,7 @@ import { drawStrip, drawTemplate, drawRR } from './ecg-view.js';
 import { saveRecord, getRecord, deleteRecord, listRecords, getSetting, setSetting, recordId, exportAll, importBackup, listPersons, savePerson, deletePerson, newPersonId, clearRecords, clearAll } from './storage.js';
 import { importFile } from './import/importers.js';
 import { ViatomClient } from './device/viatom-protocol.js';
+import { SdumperClient } from './device/sdumper-protocol.js';
 import { connectBle, connectHid, support } from './device/transports.js';
 import { parseRecordList, parseEcgFile } from './import/pulsebit-file.js';
 import { SHOWN } from './ai/ecgfounder.js';
@@ -425,7 +426,8 @@ async function viewDevice() {
       status(t('dev.connecting'));
       tr = await connect();
       log('INFO', `connected: ${tr.name} (${tr.kind}${tr.reportSize ? ', report size ' + tr.reportSize : ''})`);
-      const c = new ViatomClient(tr, { log });
+      // USB spricht ein eigenes Rahmenformat (sdumper2), Bluetooth das Lepu-Protokoll – gleiche Schnittstelle
+      const c = tr.kind === 'USB' ? new SdumperClient(tr, { log }) : new ViatomClient(tr, { log });
       const info = await c.getInfo().catch(e => ({ error: e.message }));
       $('#devinfo').innerHTML = info.error ? `<span class="badge lv-auffaellig">${esc(t('dev.noInfo'))}</span> ${esc(info.error)}` :
         t('dev.info', { name: esc(tr.name), model: esc(info.Model || '?'), sn: esc(info.SN || '?'), sw: esc(info.SoftwareVer || '?') });
@@ -433,6 +435,7 @@ async function viewDevice() {
       await c.setTime().catch(() => {});
       status(t('dev.readingList'));
       const listBytes = await c.readFile('1dlc.dat');
+      if (!listBytes && c.fileCount) log('INFO', `1dlc.dat fehlt; Dateien laut Gerät: ${await c.fileCount().catch(e => e.message)}`);
       const list = listBytes ? parseRecordList(listBytes) : [];
       const have = new Set((await listRecords()).filter(r => r.source === 'pulsebit').map(r => r.fileName));
       status(t('dev.count', { n: list.length }));

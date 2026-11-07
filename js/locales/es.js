@@ -118,6 +118,7 @@ export default {
   'dev.already': 'ya importado', 'dev.user': 'Usuario del dispositivo {u}', 'dev.noTarget': 'ninguna persona',
   'dev.loading': 'Cargando {i}/{n}: {date}', 'dev.imported': '{n} registro(s) importado(s).', 'dev.cancelled': 'No se seleccionó ningún dispositivo.',
   'dev.busy': 'El dispositivo todavía está ocupado', 'dev.noAnswer': 'Sin respuesta al comando {cmd}', 'dev.readErr': 'Error de lectura en {name} (estado {s})', 'dev.emptyBlock': 'Bloque de datos vacío en {name}',
+  'dev.usbReplug': 'El dispositivo ya no responde por USB. Desconecte brevemente el cable, vuelva a conectarlo, elija «Al PC» en el dispositivo y conéctese de nuevo. Checkme Browser no debe estar abierto.',
   'dev.needChrome': 'Este navegador no es compatible con Web Bluetooth (Chrome/Edge en Linux, Windows, Android; en iOS, la app «Bluefy»).',
   'dev.needHid': 'Este navegador no es compatible con WebHID (Chrome/Edge en ordenador).', 'dev.noneSelected': 'No se seleccionó ningún dispositivo',
 

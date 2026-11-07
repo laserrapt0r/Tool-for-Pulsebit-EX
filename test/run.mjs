@@ -5,6 +5,7 @@ import { existsSync, readdirSync } from 'node:fs';
 const run = (f, ...a) => { console.log(`\n### ${f} ${a.join(' ')}`); console.log(execFileSync('node', [`test/${f}`, ...a], { encoding: 'utf8' })); };
 if (existsSync('test/fixtures/a1.rgba')) run('digitize-test.mjs');
 run('protocol-test.mjs');
+run('usb-protocol-test.mjs');
 run('findings-test.mjs');
 run('tachy-test.mjs');
 run('i18n-test.mjs');

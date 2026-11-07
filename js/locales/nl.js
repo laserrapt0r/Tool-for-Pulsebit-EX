@@ -118,6 +118,7 @@ export default {
   'dev.already': 'al geïmporteerd', 'dev.user': 'Apparaatgebruiker {u}', 'dev.noTarget': 'geen persoon',
   'dev.loading': 'Laden {i}/{n}: {date}', 'dev.imported': '{n} opname(n) geïmporteerd.', 'dev.cancelled': 'Geen apparaat geselecteerd.',
   'dev.busy': 'Apparaat is nog bezig', 'dev.noAnswer': 'Geen antwoord op opdracht {cmd}', 'dev.readErr': 'Leesfout bij {name} (status {s})', 'dev.emptyBlock': 'Leeg datablok bij {name}',
+  'dev.usbReplug': 'Het apparaat reageert niet meer via USB. Trek de kabel kort uit, steek hem weer in, kies „Naar pc” op het apparaat en maak opnieuw verbinding. Checkme Browser mag daarbij niet geopend zijn.',
   'dev.needChrome': 'Deze browser ondersteunt geen Web Bluetooth (Chrome/Edge onder Linux, Windows, Android – onder iOS de app ‘Bluefy’).',
   'dev.needHid': 'Deze browser ondersteunt geen WebHID (Chrome/Edge op desktop).', 'dev.noneSelected': 'Geen apparaat geselecteerd',
 

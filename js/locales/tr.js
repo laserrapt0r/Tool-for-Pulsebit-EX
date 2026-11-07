@@ -118,6 +118,7 @@ export default {
   'dev.already': 'zaten içe aktarıldı', 'dev.user': 'Cihaz kullanıcısı {u}', 'dev.noTarget': 'kişi yok',
   'dev.loading': 'Yükleniyor {i}/{n}: {date}', 'dev.imported': '{n} kayıt içe aktarıldı.', 'dev.cancelled': 'Cihaz seçilmedi.',
   'dev.busy': 'Cihaz hâlâ meşgul', 'dev.noAnswer': '{cmd} komutuna yanıt yok', 'dev.readErr': '{name} okunurken hata (durum {s})', 'dev.emptyBlock': '{name} için boş veri bloğu',
+  'dev.usbReplug': 'Cihaz artık USB üzerinden yanıt vermiyor. Kabloyu kısa süre çıkarıp yeniden takın, cihazda “PC’ye” seçeneğini seçin ve tekrar bağlanın. Bu sırada Checkme Browser açık olmamalıdır.',
   'dev.needChrome': 'Bu tarayıcı Web Bluetooth\'u desteklemiyor (Linux, Windows, Android\'de Chrome/Edge – iOS\'ta “Bluefy” uygulaması).',
   'dev.needHid': 'Bu tarayıcı WebHID\'i desteklemiyor (masaüstünde Chrome/Edge).', 'dev.noneSelected': 'Cihaz seçilmedi',
 

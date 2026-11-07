@@ -118,6 +118,7 @@ export default {
   'dev.already': 'already imported', 'dev.user': 'Device user {u}', 'dev.noTarget': 'no person',
   'dev.loading': 'Loading {i}/{n}: {date}', 'dev.imported': '{n} recording(s) imported.', 'dev.cancelled': 'No device selected.',
   'dev.busy': 'Device is still busy', 'dev.noAnswer': 'No response to command {cmd}', 'dev.readErr': 'Read error for {name} (status {s})', 'dev.emptyBlock': 'Empty data block for {name}',
+  'dev.usbReplug': 'The device no longer responds over USB. Briefly unplug the cable, plug it back in, select “To PC” on the device and connect again. Make sure Checkme Browser is not open.',
   'dev.needChrome': 'This browser does not support Web Bluetooth (Chrome/Edge on Linux, Windows, Android – on iOS the “Bluefy” app).',
   'dev.needHid': 'This browser does not support WebHID (Chrome/Edge on desktop).', 'dev.noneSelected': 'No device selected',
 

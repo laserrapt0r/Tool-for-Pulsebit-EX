@@ -46,7 +46,14 @@ export async function connectBle() {
   };
 }
 
-/** Experimentell: Rahmen werden auf HID-Berichte aufgeteilt (Berichtsgröße aus dem Gerätedeskriptor). */
+// Der Pulsebit verträgt die USB-Begrüßung nur einmal je Steckvorgang (siehe sdumper-protocol.js). Gemerkt wird sie
+// im Speicher je HIDDevice und in localStorage (übersteht Neuladen der Seite); beim Abziehen wird sie vergessen.
+const GREET_KEY = 'pulsebit-usb-greeted', greetedDevs = new WeakSet();
+const lsGet = () => { try { return +localStorage.getItem(GREET_KEY) || 0; } catch { return 0; } };
+const lsSet = v => { try { v ? localStorage.setItem(GREET_KEY, String(v)) : localStorage.removeItem(GREET_KEY); } catch { /* egal */ } };
+if (support.hid) navigator.hid.addEventListener('disconnect', e => { greetedDevs.delete(e.device); lsSet(0); });
+
+/** Rahmen werden auf HID-Berichte aufgeteilt (Berichtsgröße aus dem Gerätedeskriptor). */
 export async function connectHid({ any = false } = {}) {
   if (!support.hid) throw new Error(t('dev.needHid'));
   const [dev] = await navigator.hid.requestDevice({ filters: any ? [] : VIATOM_HID_FILTERS });
@@ -61,8 +68,14 @@ export async function connectHid({ any = false } = {}) {
     const v = e.data;
     cb(new Uint8Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength)));
   });
+  const session = {
+    // nach Neuladen der Seite: Merker höchstens 12 h gültig
+    greeted: greetedDevs.has(dev) || Date.now() - lsGet() < 12 * 3600e3,
+    markGreeted() { this.greeted = true; greetedDevs.add(dev); lsSet(Date.now()); },
+    reset() { this.greeted = false; greetedDevs.delete(dev); lsSet(0); },
+  };
   return {
-    name: dev.productName || 'USB', kind: 'USB', reportSize: size, reportId,
+    name: dev.productName || 'USB', kind: 'USB', reportSize: size, reportId, session,
     onData: f => { cb = f; },
     async write(bytes) {
       for (let i = 0; i < bytes.length; i += size) {

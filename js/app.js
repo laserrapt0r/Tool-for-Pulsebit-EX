@@ -243,7 +243,7 @@ async function viewRecord(id) {
         <div class="kpi"><b>${a.beats.length}</b><span>${esc(t('rec.kpiBeats', { s: shownBeats().filter(b => b.type === 'S').length, v: shownBeats().filter(b => b.type === 'V').length }))}</span></div>
         <div class="kpi"><b>${nf(iv.pr)}</b><span>${esc(t('rec.kpiPr'))}</span></div>
         <div class="kpi"><b>${nf(iv.qrs)}</b><span>${esc(t('rec.kpiQrs'))}</span></div>
-        <div class="kpi"><b>${nf(hrShown < 60 || hrShown > 90 ? iv.qtcF : iv.qtcB)}</b><span>${esc(t('rec.kpiQtc'))}</span></div>
+        <div class="kpi"><b>${nf(iv.qtcF)}</b><span>${esc(t('rec.kpiQtc'))}</span></div>
         <div class="kpi"><b>${a.quality?.score ?? '–'}</b><span>${esc(t('rec.kpiQ'))}</span></div>
       </div>
       ${res.overall === 'abklaeren' ? `<div class="emergency">${esc(t('rec.emergency'))}</div>` : ''}`;

@@ -52,7 +52,14 @@ export function aggregate(probs, labels) {
   const out = {};
   labels.forEach((name, i) => {
     const v = probs.map(p => p[i]);
-    out[name] = EPISODIC.has(name) ? Math.max(...v) : v.reduce((s, x) => s + x, 0) / v.length;
+    let agg = EPISODIC.has(name) ? Math.max(...v) : v.reduce((s, x) => s + x, 0) / v.length;
+    // Vorhofflimmern/-flattern in langen Aufnahmen (> 30 s) ist oft anfallsartig: zusätzlich das Maximum
+    // des gleitenden Mittels über 3 Fenster (≈ 20 s) berücksichtigen, damit eine kurze Episode nicht verdünnt wird
+    if ((name === 'ATRIAL FIBRILLATION' || name === 'ATRIAL FLUTTER') && v.length > 6) {
+      let m = 0; for (let k = 0; k + 3 <= v.length; k++) m = Math.max(m, (v[k] + v[k + 1] + v[k + 2]) / 3);
+      agg = Math.max(agg, m);
+    }
+    out[name] = agg;
   });
   return { labels: out, thresholds: THRESHOLDS, calibration: CALIBRATION, windows: probs.length };
 }

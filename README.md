@@ -61,10 +61,10 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 
 | Messung | innerhalb ±20 ms | mittlere Abweichung | Hinweis |
 |---|---|---|---|
-| QRS-Dauer | 87 % | 13 ms | breiter QRS (≥ 120 ms) in 9/14 erkannt, 4× fälschlich |
-| PR-Zeit | 78 % | 14 ms (im Mittel 3 ms zu kurz) | AV-Block I° in 6/8 erkannt |
+| QRS-Dauer | 89 % | 11 ms | breiter QRS (≥ 120 ms) in 10/14 erkannt, 5× fälschlich |
+| PR-Zeit | 78 % | 16 ms (im Mittel 2 ms zu kurz) | AV-Block I° in 6/8 erkannt |
 | QT-Zeit | 74 % (±40 ms: 94 %) | 19 ms | nur „verlässliche“ Messungen lösen Befunde aus |
-| P-Welle bei Sinusrhythmus gefunden | 166/170 | | |
+| P-Welle bei Sinusrhythmus gefunden | 169/170 | | |
 
 **Extrasystolen** – MIT-BIH Arrhythmia, 30-s-Abschnitte, Testhälfte DS2 (22 Patienten, nicht zum Anpassen benutzt):
 
@@ -73,20 +73,20 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 | Herzschläge gefunden | 97,6 % | 99,4 % |
 | VES-Meldungen korrekt | 98 % | 98 % |
 | Abschnitte mit VES erkannt / Fehlalarm | 67 % / 2 % | 66 % / 1 % |
-| Abschnitte mit SVES erkannt / Fehlalarm | 24 % / 8 % | 70 % / 8 % |
+| Abschnitte mit SVES erkannt / Fehlalarm | 25 % / 7 % | 70 % / 8 % |
 
 **Falsch-Positiv-Audit** – Gesamtstufe der App bei EKGs, die Ärzte als unauffällig beurteilt haben:
 
 | Datensatz | unauffällig | Hinweis | auffällig | ärztlich abklären |
 |---|---|---|---|---|
-| CinC 2017 „normal“, 1.500 Handgerät-EKGs – **mit KI (wie in der App)** | 58 % | 31 % | 9 % | 2 % |
-| CinC 2017 „normal“ – ohne KI | 56 % | 31 % | 7 % | 6 % (davon 5 % Vorhofflimmern-Verdacht) |
-| LUDB Sinusrhythmus ohne Extrasystolen/Block, 90 Klinik-EKGs | 79 % | 18 % | 3 % | 0 % |
-| MIT-BIH Sinusrhythmus, nur Normalschläge, 615 Abschnitte¹ | 47 % | 29 % | 15 % | 8 % |
+| CinC 2017 „normal“, 1.500 Handgerät-EKGs – **mit KI (wie in der App)** | 62 % | 27 % | 9 % | 2 % |
+| CinC 2017 „normal“ – ohne KI | 64 % | 25 % | 6 % | 5 % (Vorhofflimmern-Verdacht) |
+| LUDB Sinusrhythmus ohne Extrasystolen/Block, 90 Klinik-EKGs | 88 % | 10 % | 2 % | 0 % |
+| MIT-BIH Sinusrhythmus, nur Normalschläge, 615 Abschnitte¹ | 59 % | 21 % | 13 % | 7 % |
 
 ¹ enthält Patienten mit echtem Schenkelblock/AV-Block (AAMI zählt diese Schläge als „normal“). Eine einzelne Extrasystole in 30 s gilt als Normalbefund (Stufe „Info“); Nutzungshinweise (Polarität, mäßige Signalqualität) ändern die Gesamtstufe nicht. Alarmstufen („auffällig“, „abklären“) werden nur vergeben, wenn die zugrunde liegende Messung als verlässlich gilt (Signalqualität, T-Wellen-Plausibilität, Messstreuung).
 
-**Bekannte Grenzen:** SVES-Salven und Vorhoftachykardien werden schlecht erkannt; bei Sinustachykardie über 120/min wird die P-Welle oft nicht gefunden (Meldung „Tachykardie ohne P-Wellen“). KI-Labels für Schenkelblock, Hypertrophie, Lagetyp und AV-Block werden nicht angezeigt.
+**Bekannte Grenzen:** Vorhoftachykardien werden schlecht erkannt; bei Sinustachykardie über etwa 130/min verschmilzt die P-Welle mit der T-Welle und wird nicht gefunden (Meldung „Tachykardie ohne P-Wellen“, Stufe „auffällig“). Ohne KI kann eine ausgeprägte Sinusarrhythmie als Vorhofflimmern gelten. Bei Bigeminus wird die QTc-Zeit mit dem Abstand vor dem Normalschlag berechnet. KI-Labels für Schenkelblock, Hypertrophie, Lagetyp und AV-Block werden nicht angezeigt.
 
 ### Nutzen
 - **Online:** [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) öffnen (Chrome/Edge; iPhone: Safari für Import, Bluetooth nur mit der App „Bluefy“).
@@ -175,10 +175,10 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 
 | Measurement | within ±20 ms | mean abs. error | Note |
 |---|---|---|---|
-| QRS duration | 87 % | 13 ms | wide QRS (≥ 120 ms) detected in 9/14, 4 false |
-| PR interval | 78 % | 14 ms (on average 3 ms too short) | first-degree AV block detected in 6/8 |
+| QRS duration | 89 % | 11 ms | wide QRS (≥ 120 ms) detected in 10/14, 5 false |
+| PR interval | 78 % | 16 ms (on average 2 ms too short) | first-degree AV block detected in 6/8 |
 | QT interval | 74 % (±40 ms: 94 %) | 19 ms | only “reliable” measurements trigger findings |
-| P wave found in sinus rhythm | 166/170 | | |
+| P wave found in sinus rhythm | 169/170 | | |
 
 **Premature beats** – MIT-BIH Arrhythmia, 30-s segments, test half DS2 (22 patients, not used for tuning):
 
@@ -187,20 +187,20 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 | Beats detected | 97.6 % | 99.4 % |
 | Reported PVCs correct | 98 % | 98 % |
 | Segments with PVCs detected / false alarm | 67 % / 2 % | 66 % / 1 % |
-| Segments with PACs detected / false alarm | 24 % / 8 % | 70 % / 8 % |
+| Segments with PACs detected / false alarm | 25 % / 7 % | 70 % / 8 % |
 
 **False-positive audit** – overall level reported by the app for ECGs that physicians judged unremarkable:
 
 | Dataset | normal | note | notable | see a doctor |
 |---|---|---|---|---|
-| CinC 2017 "normal", 1,500 handheld ECGs – **with AI (as in the app)** | 58 % | 31 % | 9 % | 2 % |
-| CinC 2017 "normal" – without AI | 56 % | 31 % | 7 % | 6 % (of which 5 % suspected AF) |
-| LUDB sinus rhythm without ectopy/block, 90 clinical ECGs | 79 % | 18 % | 3 % | 0 % |
-| MIT-BIH sinus rhythm, normal beats only, 615 segments¹ | 47 % | 29 % | 15 % | 8 % |
+| CinC 2017 "normal", 1,500 handheld ECGs – **with AI (as in the app)** | 62 % | 27 % | 9 % | 2 % |
+| CinC 2017 "normal" – without AI | 64 % | 25 % | 6 % | 5 % (suspected AF) |
+| LUDB sinus rhythm without ectopy/block, 90 clinical ECGs | 88 % | 10 % | 2 % | 0 % |
+| MIT-BIH sinus rhythm, normal beats only, 615 segments¹ | 59 % | 21 % | 13 % | 7 % |
 
 ¹ includes patients with genuine bundle branch block / AV block (AAMI counts those beats as "normal"). A single premature beat in 30 s counts as a normal finding ("info" level); usage hints (polarity, moderate signal quality) do not change the overall level. Alert levels ("notable", "see a doctor") are only assigned when the underlying measurement is considered reliable (signal quality, T-wave plausibility, measurement scatter).
 
-**Known limitations:** runs of PACs and atrial tachycardias are poorly detected; in sinus tachycardia above 120/min the P wave is often missed ("tachycardia without P waves"). AI labels for bundle branch block, hypertrophy, axis and AV block are not shown.
+**Known limitations:** atrial tachycardias are poorly detected; in sinus tachycardia above about 130/min the P wave merges with the T wave and is not found ("tachycardia without P waves", level "notable"). Without AI, pronounced sinus arrhythmia can be mistaken for atrial fibrillation. In bigeminy, QTc uses the interval preceding the normal beat. AI labels for bundle branch block, hypertrophy, axis and AV block are not shown.
 
 ### Usage
 - **Online:** open [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) (Chrome/Edge; iPhone: Safari for import, Bluetooth only with the "Bluefy" app).

@@ -28,6 +28,8 @@ function patterns(types) {
 }
 
 /** Ruhe-Herzfrequenz-Normbereich nach Alter (Jahre). Erwachsene: 60–100/min. */
+export const AF_OPT = { ruleNeedsFewP: false }; // true würde die AF-Erkennung ohne KI von 79 auf 27 % senken (Flimmerwellen werden als P erkannt)
+
 export function hrNorm(age) {
   if (age == null || age >= 18) return { lo: 60, hi: 100, mark: 50, adult: true };
   if (age < 1) return { lo: 100, hi: 160, mark: 90 };
@@ -79,7 +81,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
   const hasAI = pAF != null;
   // Kalibriert auf PhysioNet/CinC 2017: (Unregelmäßigkeit & KI ≥ 0,7) oder KI ≥ 0,9 → Sens. 87 %, Spez. 96 %
   let isAF = false;
-  const afFlag = hasAI ? (irrAll && pAF >= 0.7) || pAF >= 0.9 : afRule;
+  const afFlag = hasAI ? (irrAll && pAF >= 0.7) || pAF >= 0.9 : afRule && (!AF_OPT.ruleNeedsFewP || fewP);
   const afEvidence = [
     hrvAll ? t('ev.nrmssd', { v: f1(hrvAll.nrmssd * 100) }) : null, hrvAll ? t('ev.entropy', { v: f1(hrvAll.entropy) }) : null,
     t('ev.pRatioVis', { p: pR }), aiTxt('ATRIAL FIBRILLATION'),
@@ -89,9 +91,9 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     let cert = afRule && afAI && q.score >= 60 ? 'probable' : 'possible';
     if (q.score < 60) cert = 'uncertain';
     add(F('af', cert === 'probable' ? t('f.af.t.prob') : t('f.af.t'), 'abklaeren', cert,
-      [fewP ? t('f.af.x1p') : t('f.af.x1'), t('f.af.x2'), cert === 'uncertain' ? t('f.af.x3') : ''].filter(Boolean).join(' '),
+      [!irrAll ? t('f.af.x1ai') : fewP ? t('f.af.x1p') : t('f.af.x1'), t('f.af.x2'), cert === 'uncertain' ? t('f.af.x3') : ''].filter(Boolean).join(' '),
       { meaning: t('f.af.m'), advice: t('f.af.a') + (cert === 'uncertain' ? ' ' + t('f.af.a2') : ''), evidence: afEvidence }));
-  } else if (afRule && hasAI) {
+  } else if (afRule && (hasAI || AF_OPT.ruleNeedsFewP)) {
     add(F('irregular', t('f.irr.t'), pAF >= 0.3 ? 'auffaellig' : 'hinweis', 'possible', t('f.irr.x'), { meaning: t('f.irr.m'), advice: t('f.irr.a'), evidence: afEvidence }));
   }
 
@@ -124,9 +126,10 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     }));
   } else if (!isAF) {
     const regular = regularRhythm;
-    const wide = iv.qrs >= 120;
+    const wide = iv.qrs >= 130 && q.score >= 70;
     if (regular && hr > norm.hi) {
-      add(F('tachy_nop', wide ? t('f.tachy.tWide') : t('f.tachy.t'), 'abklaeren', 'possible',
+      // schmaler QRS bis 150/min: meist Sinustachykardie mit nicht abgrenzbarer P-Welle → auffällig; breit oder > 150/min → abklären
+      add(F('tachy_nop', wide ? t('f.tachy.tWide') : t('f.tachy.t'), wide || hr > 150 ? 'abklaeren' : 'auffaellig', 'possible',
         t('f.tachy.x', { hr }) + (wide ? ' ' + t('f.tachy.xWide') : ''),
         {
           meaning: wide ? t('f.tachy.mWide') : t('f.tachy.m'), advice: wide ? t('f.tachy.aWide') : t('f.tachy.a'),
@@ -161,7 +164,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     const title = runs.length ? t('f.ves.tRun', { len: Math.max(...runs) }) : t(big ? 'f.ves.tBig' : tri ? 'f.ves.tTri' : 'f.ves.t', { n: nV });
     const wideV = beats.some(b => b.type === 'V' && b.width >= 0.12);
     const singleV = nV === 1 && !pat.vCouplets && q.score >= 80;
-    add(F('ves', title, runs.length ? 'abklaeren' : pat.vCouplets || big || nV / dur * 60 > 6 ? 'auffaellig' : singleV ? 'info' : 'hinweis', aiSays('PREMATURE VENTRICULAR COMPLEXES') ? 'probable' : 'possible',
+    add(F('ves', title, runs.length ? (q.score >= 60 ? 'abklaeren' : 'auffaellig') : pat.vCouplets || big || nV / dur * 60 > 6 ? 'auffaellig' : singleV ? 'info' : 'hinweis', aiSays('PREMATURE VENTRICULAR COMPLEXES') ? 'probable' : 'possible',
       [t(wideV ? 'f.ves.xWide' : 'f.ves.x', { n: nV, perMin: perMin(nV) }), comp ? t('f.ves.xComp', { n: comp }) : '', pat.vCouplets ? t('f.ves.xCouplet', { n: pat.vCouplets }) : '',
         runs.length ? t('f.ves.xRuns', { n: runs.length }) : '', big ? t('f.ves.xBig') : ''].filter(Boolean).join(' '),
       { meaning: t('f.ves.m'), advice: runs.length ? t('f.ves.aRun') : t('f.ves.a'), evidence: [t('f.ves.e1'), aiTxt('PREMATURE VENTRICULAR COMPLEXES'), t('f.ves.e2')].filter(Boolean) }));
@@ -186,7 +189,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
 
   // ---------- Überleitung & Kammererregung ----------
   if (sinus && iv.pr != null) {
-    const prReliable = (iv.pProm ? Math.abs(iv.pProm) : 0) >= 8 * (iv.pNoise || 0) && q.score >= 80 && !sinusByAI;
+    const prReliable = (iv.pProm ? Math.abs(iv.pProm) : 0) >= 8 * (iv.pNoise || 0) && q.score >= 80 && !sinusByAI && !iv.pOnEdge && iv.pr <= 300;
     // PR-Messgenauigkeit ±14 ms: erst ab 211 ms und nur bei deutlich erkennbarer P-Welle melden
     if (iv.pr > 210 && prReliable) {
       const border = iv.pr <= (a.source === 'pdf' ? 230 : 220);
@@ -201,7 +204,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     if (iv.qrs >= 130 && q.score >= 70) {
       add(F('wideqrs', t('f.wideqrs.t'), 'auffaellig', unsure ? 'possible' : 'measured', t('f.wideqrs.x', { v: iv.qrs }),
         { meaning: t('f.wideqrs.m'), advice: t('f.wideqrs.a'), evidence: [t('ev.qrs', { v: iv.qrs })] }));
-    } else if (iv.qrs >= 120) {
+    } else if (iv.qrs >= 120 && q.score >= 70) {
       add(F('qrsborder', t('f.qrsborder.t'), 'hinweis', 'uncertain', t('f.qrsborder.x', { v: iv.qrs }), { evidence: [t('ev.qrs', { v: iv.qrs })], meaning: t('f.qrsborder.m') }));
     }
   }
@@ -213,14 +216,16 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
     const lim = sex === 'w' ? 460 : sex === 'm' ? 450 : 455;
     const ev = [`QT ${iv.qt} ms`, `QTc Fridericia ${iv.qtcF} ms`, `QTc Bazett ${iv.qtcB} ms`];
     const reliable = iv.qtReliable && q.score >= 80 && hr >= 45 && hr <= 110;
+    const wideQrs = (iv.qrs ?? 0) >= 120;
+    if (wideQrs) ev.push(t('f.qt.eWideQrs'));
     if (qtc >= 500 && reliable) {
-      add(F('qtlong', t('f.qt.tMarked'), 'abklaeren', 'measured', t('f.qt.xMarked', { qtc, method, qt: iv.qt }),
+      add(F('qtlong', t('f.qt.tMarked'), wideQrs ? 'hinweis' : 'abklaeren', 'measured', t('f.qt.xMarked', { qtc, method, qt: iv.qt }),
         { meaning: t('f.qt.mMarked'), advice: t('f.qt.aMarked'), evidence: [...ev, t('f.qt.eTend')] }));
     } else if (qtc >= 480 && !reliable) {
       add(F('qtunsure', t('f.qt.tUnsure'), 'hinweis', 'uncertain', t('f.qt.xUnsure', { qtc, method }),
         { meaning: t('f.qt.mUnsure'), advice: t('f.qt.aUnsure'), evidence: [...ev, t('f.qt.eTend')] }));
     } else if (qtc >= 470 && reliable) {
-      add(F('qtlong', t('f.qt.t'), 'auffaellig', 'uncertain', t(sex ? 'f.qt.x' : 'f.qt.xNoSex', { qtc, method, lim }),
+      add(F('qtlong', t('f.qt.t'), wideQrs ? 'hinweis' : 'auffaellig', 'uncertain', t(sex ? 'f.qt.x' : 'f.qt.xNoSex', { qtc, method, lim }),
         { meaning: t('f.qt.m'), advice: t('f.qt.a'), evidence: ev }));
     } else if (qtc > lim && reliable) {
       add(F('qtlong', t('f.qt.t'), 'hinweis', 'uncertain', t(sex ? 'f.qt.x' : 'f.qt.xNoSex', { qtc, method, lim }),
@@ -229,11 +234,11 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
       add(F('qtshort', t('f.qt.tShort'), 'hinweis', 'uncertain', t('f.qt.xShort', { qtc, method }), { meaning: t('f.qt.mShort'), evidence: [`QT ${iv.qt} ms`] }));
     }
   }
-  if (iv.st != null && Math.abs(iv.st) >= 0.15 && q.score >= 80 && Math.abs(iv.rAmp) >= 0.4 && Math.abs(iv.rAmp) < 4 && (iv.qrs ?? 0) < 120) {
+  if (iv.st != null && a.polarity >= 0 && Math.abs(iv.st) >= 0.15 && q.score >= 80 && Math.abs(iv.rAmp) >= 0.4 && Math.abs(iv.rAmp) < 4 && (iv.qrs ?? 0) < 120) {
     add(F('st', iv.st > 0 ? t('f.st.tUp') : t('f.st.tDown'), 'hinweis', 'uncertain', t(iv.st > 0 ? 'f.st.xUp' : 'f.st.xDown', { v: f1(Math.abs(iv.st)) }),
       { meaning: t('f.st.m'), advice: t('f.st.a'), evidence: [`ST ${iv.st > 0 ? '+' : ''}${f1(iv.st)} mV`] }));
   }
-  if (iv.tAmp <= -0.1 && iv.rAmp >= 0.4 && q.score >= 80 && Math.abs(iv.tAmp) > 6 * (iv.tNoise || 0)) {
+  if (iv.tOk && iv.tAmp <= -0.1 && iv.rAmp >= 0.4 && q.score >= 80 && (iv.tFromJ ?? 0) >= 100 && a.polarity >= 0 && Math.abs(iv.tAmp) > 6 * (iv.tNoise || 0)) {
     add(F('tneg', t('f.tneg.t'), 'hinweis', 'uncertain', t('f.tneg.x'), { meaning: t('f.tneg.m'), evidence: [t('f.tneg.e', { v: f1(iv.tAmp) })] }));
   }
   if (a.polarity < 0) {

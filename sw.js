@@ -2,8 +2,8 @@
 // App-Dateien werden versioniert vorab geladen (cache-first). Eine neue Version wird aktiv, sobald der
 // Nutzer „Jetzt aktualisieren“ wählt (SKIP_WAITING) – oder spätestens, wenn alle App-Fenster geschlossen waren.
 // VERSION, HASH, BIG und SHELL werden von tools/release.mjs gepflegt – nicht von Hand ändern.
-const VERSION = '1.1.5';
-const HASH = '32c8c8b99a';
+const VERSION = '1.2.0';
+const HASH = '57c8f14c8e';
 const APP = `ekg-app-${VERSION}-${HASH}`;
 const BIG = 'ekg-big-bc211fb245'; // KI-Modell, WASM, pdf.js (Name enthält Inhalts-Hash)
 // <shell>
@@ -14,32 +14,32 @@ const SHELL = [
   'icons/icon-maskable-512.png#a743f9fc93',
   'icons/icon.svg#e3bf215483',
   'index.html#00d9350ebb',
-  'js/ai/ecgfounder.js#7a0a289f97',
+  'js/ai/ecgfounder.js#0e1181e32c',
   'js/ai/labels.json#e953c4748a',
   'js/ai/thresholds.js#5145bc318d',
   'js/ai/worker.js#fb7fbf9442',
-  'js/app.js#e7af7818e8',
+  'js/app.js#6b4fb37a10',
   'js/demo.js#7bdcf0cca5',
   'js/device/transports.js#7cbef1834f',
   'js/device/viatom-protocol.js#f51e97ee7f',
-  'js/dsp/analysis.js#d2e84da54a',
+  'js/dsp/analysis.js#77bf6b033e',
   'js/dsp/filters.js#8e9d60323d',
   'js/ecg-view.js#1be07f2e8c',
-  'js/findings.js#b125396420',
+  'js/findings.js#d7508f1e88',
   'js/i18n.js#dfdb95dc4a',
   'js/import/importers.js#392a0f2e25',
   'js/import/pdf-digitize.js#7d978fe456',
   'js/import/pulsebit-file.js#2e0f7be90e',
-  'js/locales/de.js#9829ee6440',
-  'js/locales/en.js#275a3a37e7',
-  'js/locales/es.js#4f0363a4c9',
-  'js/locales/fr.js#02d3bbbecd',
-  'js/locales/it.js#f8dd355259',
-  'js/locales/nl.js#1d37a91060',
-  'js/locales/pl.js#6f1d4f2afe',
-  'js/locales/tr.js#a9de03f11f',
+  'js/locales/de.js#18387af1ac',
+  'js/locales/en.js#5fe3bdd4e4',
+  'js/locales/es.js#386c14a8d2',
+  'js/locales/fr.js#990cef4dab',
+  'js/locales/it.js#962500d2e7',
+  'js/locales/nl.js#beaa6ad87b',
+  'js/locales/pl.js#dd6f1bcf0e',
+  'js/locales/tr.js#067327478a',
   'js/storage.js#788fb54882',
-  'js/version.js#fc14e0d786',
+  'js/version.js#3b42c0d672',
   'manifest.webmanifest#7c731c3df7',
   'styles.css#19a3bed65f',
 ];

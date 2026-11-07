@@ -120,14 +120,6 @@ Hinweis zu USB: Der Pulsebit spricht über USB ein eigenes Protokoll („sdumper
 2. Für eine neue Version: `node tools/release.mjs patch` (setzt Version, erneuert die Dateiliste des Service Workers), committen, pushen.
    Installierte Apps erkennen die neue Version beim nächsten Start bzw. stündlich und bieten „Jetzt aktualisieren“ an.
 
-### Checkme Browser Pro unter Linux (Wine)
-```bash
-tools/linux/checkme-browser.sh install <Pfad zum Setup.exe>
-sudo cp tools/linux/70-viatom-pulsebit.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
-tools/linux/checkme-browser.sh usb   # prüft, ob das Gerät erkannt wird (am Gerät „Einstellungen → Zum PC“)
-tools/linux/checkme-browser.sh       # starten
-```
-
 ### Entwicklung
 - Kein Build-Schritt: reine ES-Module. Tests: `node test/run.mjs`, Browser-Test: `python3 test/cdp.py http://localhost:8765/test/e2e.html --profile /tmp/p --wait "/FERTIG/.test(document.body.innerText)" --eval "document.body.innerText"`.
 - Übersetzungen: `js/locales/<sprache>.js` (Vorlage `de.js`, gleiche Schlüssel, Platzhalter `{…}` beibehalten).
@@ -259,7 +251,7 @@ js/app.js              UI                      js/i18n.js, js/locales/   transla
 js/dsp/                filters, analysis       js/findings.js            findings & reliability
 js/ai/                 ECGFounder (worker)     js/device/                protocol, BLE/USB
 js/import/             PDF, Pulsebit, CSV      js/demo.js                synthetic ECGs
-tools/                 model conversion, calibration, Wine/udev, release
+tools/                 model conversion, calibration, validation, udev rule, USB capture, release
 test/                  node tests, browser test (CDP)
 ```
 

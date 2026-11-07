@@ -6,7 +6,6 @@ test/out-*.json
 *.ecgfounder-ref.json
 ecg-backup-*.json
 ekg-sicherung-*.json
-checkme-hid.log
 pulsebit-usb*
 
 # ── Werkzeuge / tooling ──

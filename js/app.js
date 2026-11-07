@@ -309,14 +309,28 @@ async function viewRecord(id) {
       return;
     }
     const rows = SHOWN.filter(k => ai.labels[k] != null).sort((x, y) => ai.labels[y] - ai.labels[x]);
+    // Wie die Schwelle entstand (tools/calibration/calibrate.py): Vorhofflimmern bei 95 % Spezifität, sonst 97,5-%-Quantil
+    // der unauffälligen EKGs, mindestens 30 %; Sinusrhythmus nur Orientierungslinie
+    const tip = (k, th) => {
+      const p = Math.round(th * 100), q975 = CALIBRATION?.other?.[k]?.q975_N;
+      if (k === 'ATRIAL FIBRILLATION') return t('ai.tipAF', { p });
+      if (k === 'SINUS RHYTHM') return t('ai.tipSR', { p });
+      if (q975 != null && q975 < th) return t('ai.tipFloor', { p, q: Math.max(1, Math.ceil(q975 * 100)) });
+      return t('ai.tipQ', { p });
+    };
+    const cal = CALIBRATION ? { total: nf(Object.values(CALIBRATION.n).reduce((a, b) => a + b, 0)), n: nf(CALIBRATION.n.N), sens: Math.round(CALIBRATION.af.sens_at_spec95 * 100), pvc: Math.round((CALIBRATION.other['PREMATURE VENTRICULAR COMPLEXES']?.median_N ?? 0.63) * 100) } : null;
+    const explain = cal ? `<details class="no-print" style="margin-top:6px"><summary class="small">${esc(t('ai.thrWhat'))}</summary><div class="small">
+        <p>${t('ai.thr1', { pvc: cal.pvc })}</p><p>${t('ai.thr2', { total: cal.total, n: cal.n })}</p>
+        <ul><li>${t('ai.thrAF', { sens: cal.sens })}</li><li>${t('ai.thrQ')}</li><li>${t('ai.thrFloor')}</li><li>${t('ai.thrSR')}</li></ul>
+        <p>${t('ai.thr3')}</p></div></details>` : '';
     el.innerHTML = `<h2>${esc(t('ai.title'))}</h2>${intro}
       <table class="ai-table" style="width:100%">${rows.map(k => {
         const p = ai.labels[k], th = ai.thresholds?.[k];
         const hit = th != null && p >= th;
         return `<tr><td>${esc(t('lbl.' + k))}${k === 'PREMATURE VENTRICULAR COMPLEXES' ? ` <span class="small muted">${esc(t('ai.unreliable'))}</span>` : ''}</td><td style="text-align:right;width:52px"><b>${Math.round(p * 100)} %</b></td>
-          <td><div class="bar" title="${th != null ? esc(t('ai.threshold', { p: Math.round(th * 100) })) : ''}"><i class="${hit ? (k === 'SINUS RHYTHM' ? 'hit-ok' : 'hit') : ''}" style="width:${(p * 100).toFixed(1)}%"></i>${th != null ? `<u style="left:${(th * 100).toFixed(1)}%"></u>` : ''}</div></td></tr>`;
+          <td><div class="bar" title="${th != null ? esc(tip(k, th)) : ''}"><i class="${hit ? (k === 'SINUS RHYTHM' ? 'hit-ok' : 'hit') : ''}" style="width:${(p * 100).toFixed(1)}%"></i>${th != null ? `<u style="left:${(th * 100).toFixed(1)}%"></u>` : ''}</div></td></tr>`;
       }).join('')}</table>
-      <p class="small muted">${esc(t('ai.legend', { n: ai.windows, backend: ai.backend || '', date: fmtDate(ai.date) }))}</p>
+      <p class="small muted">${esc(t('ai.legend', { n: ai.windows, backend: ai.backend || '', date: fmtDate(ai.date) }))}</p>${explain}
       <div class="row no-print"><button class="btn" id="rerunai">${esc(t('ai.rerun'))}</button><span class="small muted" id="aistatus"></span></div>`;
     $('#rerunai').addEventListener('click', () => doAI());
   };

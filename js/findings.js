@@ -102,8 +102,12 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
   const regularRhythm = hrv && hrv.nrmssd < 0.06;
   // P-Welle in Ableitung I oft winzig: regelmäßiger Rhythmus + KI (kein Vorhofflimmern, Sinus hoch) bestätigt den Sinusrhythmus.
   // Geprüft an CinC 2017: diese Kombination tritt bei keiner Vorhofflimmern-Aufnahme auf.
-  const sinusByAI = !isAF && !(iv.pPresent && a.pRatio >= 0.7) && regularRhythm && Number.isFinite(pAF) && pAF < 0.3 && (p['SINUS RHYTHM'] ?? 0) >= 0.9;
-  const sinus = !isAF && ((iv.pPresent && a.pRatio >= 0.7) || sinusByAI);
+  // P-Welle nur nach T-Wellen-Subtraktion gefunden (hohe Frequenz): Vorhofflattern 2:1 sieht genauso aus → nicht, wenn die KI
+  // Flattern sieht; sonst Sinusrhythmus mit abgesenkter Sicherheit
+  const flutterAI = aiSays('ATRIAL FLUTTER') || (p['ATRIAL FLUTTER'] ?? 0) >= 0.5;
+  const pFound = iv.pPresent && a.pRatio >= 0.7 && !(iv.pInT && flutterAI);
+  const sinusByAI = !isAF && !pFound && regularRhythm && Number.isFinite(pAF) && pAF < 0.3 && (p['SINUS RHYTHM'] ?? 0) >= 0.9;
+  const sinus = !isAF && (pFound || sinusByAI);
   const norm = hrNorm(age);
   const rate = t(hr < norm.mark ? 'rate.markedSlow' : hr < norm.lo ? 'rate.slow' : hr > norm.hi ? 'rate.fast' : 'rate.normal');
   if (sinus) {
@@ -120,9 +124,11 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
       meaning += ' ' + t('f.sinus.mSA');
     }
     const aiSR = p['SINUS RHYTHM'];
-    add(F(id, title, level, sinusByAI ? 'probable' : 'measured', text, {
+    const pFromT = !sinusByAI && iv.pInT;
+    if (pFromT) { text += ' ' + t('f.sinus.xT'); meaning += ' ' + t('f.sinus.mT'); }
+    add(F(id, title, level, sinusByAI || pFromT ? 'probable' : 'measured', text, {
       headTitle, meaning, advice: level === 'auffaellig' ? t('f.sinus.a') : '',
-      evidence: [t('ev.hrMean', { hr, n: beats.length }), t('ev.pBefore', { p: pR }), iv.pr ? t('ev.pr', { v: iv.pr }) : null, aiSR != null ? t('ev.aiSR', { p: pct(aiSR) }) : null].filter(Boolean),
+      evidence: [t('ev.hrMean', { hr, n: beats.length }), t('ev.pBefore', { p: pR }), iv.pr ? t('ev.pr', { v: iv.pr }) : null, pFromT ? t('ev.pInT') : null, aiSR != null ? t('ev.aiSR', { p: pct(aiSR) }) : null, pFromT ? aiTxt('ATRIAL FLUTTER') : null].filter(Boolean),
     }));
   } else if (!isAF) {
     const regular = regularRhythm;
@@ -189,7 +195,7 @@ export function interpret(a, { sex = '', age = null, ai = null, device = null } 
 
   // ---------- Überleitung & Kammererregung ----------
   if (sinus && iv.pr != null) {
-    const prReliable = (iv.pProm ? Math.abs(iv.pProm) : 0) >= 8 * (iv.pNoise || 0) && q.score >= 80 && !sinusByAI && !iv.pOnEdge && iv.pr <= 300;
+    const prReliable = (iv.pProm ? Math.abs(iv.pProm) : 0) >= 8 * (iv.pNoise || 0) && q.score >= 80 && !sinusByAI && !iv.pOnEdge && !iv.pInT && iv.pr <= 300;
     // PR-Messgenauigkeit ±14 ms: erst ab 211 ms und nur bei deutlich erkennbarer P-Welle melden
     if (iv.pr > 210 && prReliable) {
       const border = iv.pr <= (a.source === 'pdf' ? 230 : 220);

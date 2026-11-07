@@ -53,9 +53,9 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 
 | Verfahren | Sensitivität | Spezifität |
 |---|---|---|
-| Messung allein | 77 % | 91 % |
+| Messung allein | 79 % | 91 % |
 | **Messung + KI (App)** | **90 %** (88–92) | **95 %** (94–96) |
-| Stufe „wahrscheinlich“ | 69 % | 98 % – Meldung richtig in ~93 % |
+| Stufe „wahrscheinlich“ | 72 % | 98 % – Meldung richtig in ~92 % |
 
 **Messwerte** – LUDB, 188 EKGs, Ableitung I, Markierungen durch Kardiologen:
 
@@ -65,6 +65,17 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 | PR-Zeit | 78 % | 16 ms (im Mittel 2 ms zu kurz) | AV-Block I° in 6/8 erkannt |
 | QT-Zeit | 74 % (±40 ms: 94 %) | 19 ms | nur „verlässliche“ Messungen lösen Befunde aus |
 | P-Welle bei Sinusrhythmus gefunden | 169/170 | | |
+
+**QT-Zeit nach Herzfrequenz** – PhysioNet QT Database, 104 Aufnahmen (viele mit ST-/T-Veränderungen, Schenkelblock), erste Ableitung, Kardiologen-Markierungen:
+
+| Herzfrequenz | Aufnahmen | QT innerhalb ±40 ms | mittlere Abweichung | Bias |
+|---|---|---|---|---|
+| < 60/min | 34 | 72 % | 33 ms | −24 ms |
+| 60–80/min | 43 | 79 % | 33 ms | −20 ms |
+| 80–100/min | 20 | 74 % | 46 ms | −41 ms |
+| ≥ 100/min | 7 | 71 % | 35 ms | +2 ms |
+
+Die App misst das T-Ende nach der Tangentenmethode und damit systematisch etwa 20 ms früher als die Markierungen dieser Datenbank (LUDB: 9 ms). Von 30 Aufnahmen mit QTc ≥ 450 ms laut Kardiologe erkennt die App 8 verlässlich; 0 von 68 unauffälligen werden fälschlich gemeldet. Grenzwertige QTc-Zeiten (450–470 ms) werden also eher übersehen als zu viel gemeldet.
 
 **Extrasystolen** – MIT-BIH Arrhythmia, 30-s-Abschnitte, Testhälfte DS2 (22 Patienten, nicht zum Anpassen benutzt):
 
@@ -86,7 +97,7 @@ Alle Prüfungen sind mit den Skripten in `tools/validation/`, `tools/calibration
 
 ¹ enthält Patienten mit echtem Schenkelblock/AV-Block (AAMI zählt diese Schläge als „normal“). Eine einzelne Extrasystole in 30 s gilt als Normalbefund (Stufe „Info“); Nutzungshinweise (Polarität, mäßige Signalqualität) ändern die Gesamtstufe nicht. Alarmstufen („auffällig“, „abklären“) werden nur vergeben, wenn die zugrunde liegende Messung als verlässlich gilt (Signalqualität, T-Wellen-Plausibilität, Messstreuung).
 
-**Bekannte Grenzen:** Vorhoftachykardien werden schlecht erkannt; bei Sinustachykardie über etwa 130/min verschmilzt die P-Welle mit der T-Welle und wird nicht gefunden (Meldung „Tachykardie ohne P-Wellen“, Stufe „auffällig“). Ohne KI kann eine ausgeprägte Sinusarrhythmie als Vorhofflimmern gelten. Bei Bigeminus wird die QTc-Zeit mit dem Abstand vor dem Normalschlag berechnet. KI-Labels für Schenkelblock, Hypertrophie, Lagetyp und AV-Block werden nicht angezeigt.
+**Bekannte Grenzen:** Vorhoftachykardien werden schlecht erkannt. Bei Sinustachykardie ab etwa 130/min liegt die P-Welle auf der T-Welle des Vorschlags; die App zieht dann ein Modell der T-Welle ab und sucht die P-Welle im Rest (synthetisch bis 170/min geprüft, an echten Aufnahmen mangels Daten nicht). Ein so gefundener Sinusrhythmus gilt nur als „wahrscheinlich“, denn Vorhofflattern mit 2:1-Überleitung sieht in einer Ableitung genauso aus – die PR-Zeit löst dann keine Befunde aus. Ohne KI kann eine ausgeprägte Sinusarrhythmie als Vorhofflimmern gelten. Bei Bigeminus wird die QTc-Zeit mit dem Abstand vor dem Normalschlag berechnet. KI-Labels für Schenkelblock, Hypertrophie, Lagetyp und AV-Block werden nicht angezeigt.
 
 ### Nutzen
 - **Online:** [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) öffnen (Chrome/Edge; iPhone: Safari für Import, Bluetooth nur mit der App „Bluefy“).
@@ -167,9 +178,9 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 
 | Method | Sensitivity | Specificity |
 |---|---|---|
-| Measurements only | 77 % | 91 % |
+| Measurements only | 79 % | 91 % |
 | **Measurements + AI (app)** | **90 %** (88–92) | **95 %** (94–96) |
-| "Probable" level | 69 % | 98 % – correct in ~93 % |
+| "Probable" level | 72 % | 98 % – correct in ~92 % |
 
 **Measurements** – LUDB, 188 ECGs, lead I, annotated by cardiologists:
 
@@ -179,6 +190,17 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 | PR interval | 78 % | 16 ms (on average 2 ms too short) | first-degree AV block detected in 6/8 |
 | QT interval | 74 % (±40 ms: 94 %) | 19 ms | only “reliable” measurements trigger findings |
 | P wave found in sinus rhythm | 169/170 | | |
+
+**QT interval by heart rate** – PhysioNet QT Database, 104 recordings (many with ST/T changes or bundle branch block), first lead, cardiologist annotations:
+
+| Heart rate | Recordings | QT within ±40 ms | mean abs. error | Bias |
+|---|---|---|---|---|
+| < 60/min | 34 | 72 % | 33 ms | −24 ms |
+| 60–80/min | 43 | 79 % | 33 ms | −20 ms |
+| 80–100/min | 20 | 74 % | 46 ms | −41 ms |
+| ≥ 100/min | 7 | 71 % | 35 ms | +2 ms |
+
+The app measures the T end with the tangent method and therefore systematically about 20 ms earlier than this database's annotations (LUDB: 9 ms). Of 30 recordings with cardiologist QTc ≥ 450 ms the app reliably flags 8; 0 of 68 unremarkable ones are flagged falsely. Borderline QTc values (450–470 ms) are thus more likely to be missed than over-reported.
 
 **Premature beats** – MIT-BIH Arrhythmia, 30-s segments, test half DS2 (22 patients, not used for tuning):
 
@@ -200,7 +222,7 @@ All evaluations are reproducible with the scripts in `tools/validation/`, `tools
 
 ¹ includes patients with genuine bundle branch block / AV block (AAMI counts those beats as "normal"). A single premature beat in 30 s counts as a normal finding ("info" level); usage hints (polarity, moderate signal quality) do not change the overall level. Alert levels ("notable", "see a doctor") are only assigned when the underlying measurement is considered reliable (signal quality, T-wave plausibility, measurement scatter).
 
-**Known limitations:** atrial tachycardias are poorly detected; in sinus tachycardia above about 130/min the P wave merges with the T wave and is not found ("tachycardia without P waves", level "notable"). Without AI, pronounced sinus arrhythmia can be mistaken for atrial fibrillation. In bigeminy, QTc uses the interval preceding the normal beat. AI labels for bundle branch block, hypertrophy, axis and AV block are not shown.
+**Known limitations:** atrial tachycardias are poorly detected. In sinus tachycardia from about 130/min the P wave sits on the preceding T wave; the app then subtracts a model of the T wave and searches the residual for the P wave (verified synthetically up to 170/min, not on real recordings for lack of data). A sinus rhythm found this way is only rated "probable", because atrial flutter with 2:1 conduction looks identical in a single lead – the PR interval then triggers no findings. Without AI, pronounced sinus arrhythmia can be mistaken for atrial fibrillation. In bigeminy, QTc uses the interval preceding the normal beat. AI labels for bundle branch block, hypertrophy, axis and AV block are not shown.
 
 ### Usage
 - **Online:** open [https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/](https://laserrapt0r.github.io/Tool-for-Pulsebit-EX/) (Chrome/Edge; iPhone: Safari for import, Bluetooth only with the "Bluefy" app).
@@ -245,6 +267,6 @@ test/                  node tests, browser test (CDP)
 - This project: MIT (see [LICENSE](LICENSE))
 - ECGFounder model & code: MIT (PKUDigitalHealth) – [models/README.md](models/README.md)
 - ONNX Runtime Web: MIT (Microsoft) · pdf.js: Apache-2.0 (Mozilla)
-- QRS detection inspired by NeuroKit2 (MIT) · validation data (not included): PhysioNet/CinC Challenge 2017, LUDB, MIT-BIH Arrhythmia Database (PhysioNet; see their licenses)
+- QRS detection inspired by NeuroKit2 (MIT) · validation data (not included): PhysioNet/CinC Challenge 2017, LUDB, QT Database, MIT-BIH Arrhythmia Database (PhysioNet; see their licenses)
 
 Not affiliated with Viatom, Lepu, CheckMe or ViHealth.

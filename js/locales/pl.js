@@ -371,6 +371,7 @@ export default {
   'f.qt.mUnsure': 'W urządzeniach przenośnych takie wartości wynikają najczęściej z błędu pomiaru, a nie z rzeczywistego wydłużenia QT. Wiarygodny pomiar QT wymaga spokojnego sygnału z wyraźnym załamkiem T.',
   'f.qt.aUnsure': 'Powtórz pomiar w spoczynku. Jeśli wartość przy dobrej jakości sygnału pozostaje powyżej 480 ms, skonsultuj się z lekarzem (zabierz listę leków).',
   'f.sinus.xAI': 'Rytm jest miarowy; załamek P jest w tym odprowadzeniu bardzo mały, ale SI potwierdza rytm zatokowy ({p} %) i nie widzi migotania przedsionków. Częstość akcji serca {hr}/min ({rate}).',
+  'ev.pInT': 'Fala P rozróżnialna dopiero po odjęciu poprzedzającej fali T', 'f.sinus.xT': 'Przy tej częstości fale P leżą na fali T poprzedniego pobudzenia i zostały wykryte dopiero po jej obliczeniowym usunięciu.', 'f.sinus.mT': 'Trzepotanie przedsionków z przewodzeniem 2:1 może wyglądać identycznie w pojedynczym odprowadzeniu i nie można go tu wykluczyć.',
   'f.af.x1ai': 'Model SI rozpoznaje wzorzec typowy dla migotania przedsionków, ale zmierzone odstępy między pobudzeniami są w dużej mierze miarowe.',
   'f.qt.eWideQrs': 'Przy poszerzonym zespole QRS odstęp QTc jest zawyżony (część wydłużenia pochodzi z samego QRS).',
 };

@@ -371,6 +371,7 @@ export default {
   'f.qt.mUnsure': 'Bij draagbare apparaten ontstaan zulke waarden meestal door meetfouten, niet door een echte QT-verlenging. Een betrouwbare QT-meting vereist een rustig signaal met een duidelijke T-golf.',
   'f.qt.aUnsure': 'Meting in rust herhalen. Blijft de waarde bij goede signaalkwaliteit boven 480 ms, dan een arts raadplegen (medicatielijst meenemen).',
   'f.sinus.xAI': 'Het ritme is regelmatig; de P-golf is in deze afleiding zeer klein, maar de AI bevestigt een sinusritme ({p} %) en ziet geen boezemfibrilleren. Hartfrequentie {hr}/min ({rate}).',
+  'ev.pInT': 'P-top pas na aftrekken van de voorafgaande T-top te onderscheiden', 'f.sinus.xT': 'Bij deze frequentie liggen de P-toppen op de T-top van de voorafgaande slag en zijn ze pas na het rekenkundig verwijderen daarvan herkend.', 'f.sinus.mT': 'Atriumflutter met 2:1-geleiding kan er in één afleiding precies zo uitzien en is hier niet met zekerheid uit te sluiten.',
   'f.af.x1ai': 'Het AI-model herkent een voor boezemfibrilleren typisch patroon, maar de gemeten slagintervallen zijn grotendeels regelmatig.',
   'f.qt.eWideQrs': 'Bij een breed QRS-complex wordt de QTc-tijd overschat (een deel van de verlenging komt uit het QRS zelf).',
 };

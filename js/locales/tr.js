@@ -371,6 +371,7 @@ export default {
   'f.qt.mUnsure': 'Taşınabilir cihazlarda bu tür değerler çoğunlukla gerçek bir QT uzamasından değil, ölçüm hatasından kaynaklanır. Güvenilir bir QT ölçümü, belirgin T dalgalı sakin bir sinyal gerektirir.',
   'f.qt.aUnsure': 'Ölçümü dinlenme halinde tekrarlayın. İyi sinyal kalitesinde değer 480 ms’nin üzerinde kalırsa hekime başvurun (ilaç listenizi götürün).',
   'f.sinus.xAI': 'Ritim düzenli; bu derivasyonda P dalgası çok küçük, ancak yapay zekâ sinüs ritmini doğruluyor (%{p}) ve atriyal fibrilasyon görmüyor. Kalp hızı {hr}/dk ({rate}).',
+  'ev.pInT': 'P dalgası yalnızca önceki T dalgası çıkarıldıktan sonra ayırt edilebildi', 'f.sinus.xT': 'Bu hızda P dalgaları önceki vurunun T dalgasının üzerine biner ve ancak T dalgası hesaplama yoluyla çıkarıldıktan sonra saptandı.', 'f.sinus.mT': '2:1 iletimli atriyal flutter tek bir derivasyonda aynı görünebilir ve burada kesin olarak dışlanamaz.',
   'f.af.x1ai': 'Yapay zekâ modeli atriyal fibrilasyona özgü bir örüntü tanıyor, ancak ölçülen atım aralıkları büyük ölçüde düzenli.',
   'f.qt.eWideQrs': 'Geniş QRS kompleksinde QTc aralığı olduğundan uzun ölçülür (uzamanın bir kısmı QRS’nin kendisinden kaynaklanır).',
 };

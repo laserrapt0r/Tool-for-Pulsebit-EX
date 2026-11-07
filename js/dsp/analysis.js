@@ -84,7 +84,8 @@ function corr(a, b) {
 /** QRS-Beginn/-Ende über die Steigung relativ zum Maximum (Indizes relativ zum Fenster). */
 // Schalter für Validierungsexperimente. Gewählt nach MIT-BIH (DS1) und CinC-2017-Normal-EKGs:
 // protectQrsLike/lateV erhöhen die VES-Erkennung bei Holter-EKGs, verursachen bei Handgerät-Aufnahmen aber viele Fehlalarme.
-export const P_OPT = { onsetFrac: 0.1, leftCut: true, tEndMargin: 0.06, minProm: 0.012, useMeasuredT: true };
+export const P_OPT = { onsetFrac: 0.1, leftCut: true, tEndMargin: 0.06, minProm: 0.012, useMeasuredT: true, subtractT: true };
+export const T_OPT = { maxFrac: 0.55, subGapMs: 160 }; // T-Gipfel spätestens bei maxFrac·RR; T-Subtraktion nur, wenn die T-Welle des Vorschlags näher als subGapMs an den QRS-Beginn reicht
 export const RR_OPT = { qtcFromPrecedingRR: true, madOutlier: true, madK: 2.5 }; // madK an MIT-BIH DS1 gewählt // P-Beginn/-Ende: Anteil der Prominenz (an LUDB geprüft)
 export const DET_OPT = { protectQrsLike: false, p2pFilter: true, lateV: false, searchBack: true, svesIqr: 1.5 };
 export const QRS_OPT = { k: 0.05, kOn: 0.05, iso: 0.25, holdMs: 10, lookMs: 0, lookFactor: 2.5, ampFrac: 0.15, advanceOn: false, moveOff: 0.08, floor: 0, floorOff: 0, humpFix: true, crossFix: true, robustOnsetIso: true, robustIso: false, offsetFromPR: true, tpMaxDev: 0.15 }; // floor: Mindestschwelle der Steigung in (1/s)·R-Amplitude – nötig bei stark tiefpassgefilterten Geräten (Pulsebit: < 25 Hz) // advanceOn verschlechtert QRS/QT an LUDB (überspringt kleine Q-Zacken)
@@ -174,8 +175,31 @@ function qrsBounds(w, r, fs, isoLevel) {
   return { on, off };
 }
 
+/**
+ * T-Welle als Gauß-Kurve modellieren: Lage und Höhe aus dem gemessenen T-Gipfel, Breite aus dem aufsteigenden Schenkel
+ * (Halbwertspunkt), den die P-Welle des Folgeschlags nicht beeinflusst. Der Medianschlag selbst taugt nicht als Vorlage:
+ * bei regelmäßigem Rhythmus enthält er hinter der T-Welle die P-Welle des Folgeschlags, die Subtraktion entfernte sie mit.
+ */
+function tModel(tpl, iso, tPeak, tAmp, qOff, fs) {
+  let h = tPeak;
+  while (h > qOff && Math.abs(tpl[h] - iso) > Math.abs(tAmp) / 2) h--;
+  const sigma = Math.max(0.02 * fs, (tPeak - h) / 1.1774); // halbe Halbwertsbreite → σ
+  return { peak: tPeak, amp: tAmp, sigma, end: tPeak + Math.round(3 * sigma) };
+}
+
+/**
+ * Zieht die modellierte T-Welle des Vorschlags (um rrS nach links verschoben) vom Bereich vor dem QRS ab. Bei hoher
+ * Herzfrequenz liegt die P-Welle auf dem absteigenden T-Schenkel und ist sonst nicht abgrenzbar.
+ */
+function subtractPrevT(arr, m, rrS, qOn) {
+  const out = Float64Array.from(arr);
+  const i0 = Math.max(0, m.peak - rrS - Math.round(2 * m.sigma)), i1 = Math.min(qOn - 1, m.end - rrS);
+  for (let i = i0; i <= i1; i++) { const d = i + rrS - m.peak; out[i] -= m.amp * Math.exp(-d * d / (2 * m.sigma * m.sigma)); }
+  return out;
+}
+
 /** Vermessung des Medianschlags. */
-function delineate(tpl, r, fs, rrMean, polarity) {
+function delineate(tpl, r, fs, rrMean, polarity, rrMin = rrMean) {
   const n = tpl.length;
   // vorläufige isoelektrische Linie: Median im Bereich 60–100 ms vor R
   // Robuste Grundlinie: Pegel des flachsten 40-ms-Fensters in der TP-Strecke (100–360 ms vor R)
@@ -198,7 +222,7 @@ function delineate(tpl, r, fs, rrMean, polarity) {
 
   // T-Welle: Suchfenster endet frequenzabhängig (T-Gipfel liegt physiologisch vor ≈ 0,42·√RR + 100 ms nach R),
   // damit nicht U-Welle, nächste P-Welle oder Rauschen als "T" gilt.
-  const tA = q.off + Math.round(0.06 * fs), tB = Math.min(n - 2, r + Math.round(Math.min(0.5 * rrMean, 0.42 * Math.sqrt(rrMean) + 0.1) * fs));
+  const tA = q.off + Math.round(0.06 * fs), tB = Math.min(n - 2, r + Math.round(Math.min(T_OPT.maxFrac * rrMean, 0.42 * Math.sqrt(rrMean) + 0.1) * fs));
   let tPeak = -1, tAmp = 0;
   for (let i = tA; i < tB; i++) if (Math.abs(tpl[i] - iso) > Math.abs(tAmp)) { tAmp = tpl[i] - iso; tPeak = i; }
   // Rauschen im T-Fenster (mittlere Punkt-zu-Punkt-Abweichung) für die Verlässlichkeit
@@ -207,50 +231,61 @@ function delineate(tpl, r, fs, rrMean, polarity) {
   tNoise /= Math.max(1, tB - tA - 1);
   let tEnd = null;
   const tOk = tPeak > 0 && Math.abs(tAmp) >= Math.max(0.05, 0.06 * Math.abs(rAmp)) && Math.abs(tAmp) > 6 * tNoise * Math.sqrt(fs / 250);
-  if (tOk) {
-    // Tangentenmethode: steilste Stelle des absteigenden T-Schenkels, Schnitt mit isoelektrischer Linie
+  // Tangentenmethode: steilste Stelle des absteigenden T-Schenkels, Schnitt mit isoelektrischer Linie
+  const tangentEnd = arr => {
     let best = tPeak, slope = 0;
     for (let i = tPeak + 1; i < Math.min(n - 1, tPeak + 0.15 * fs); i++) {
-      const sl = (tpl[i + 1] - tpl[i - 1]) / 2;
+      const sl = (arr[i + 1] - arr[i - 1]) / 2;
       if (Math.sign(-sl) === Math.sign(tAmp) && Math.abs(sl) > Math.abs(slope)) { slope = sl; best = i; }
     }
-    if (slope !== 0) {
-      const xi = best + (iso - tpl[best]) / slope;
-      if (xi > tPeak && xi < n) tEnd = xi;
-    }
-  }
+    if (slope === 0) return null;
+    const xi = best + (iso - arr[best]) / slope;
+    return xi > tPeak && xi < n ? xi : null;
+  };
   // Verlässlichkeit der QT-Messung: T-Welle ausgeprägt, nach dem T-Ende kehrt das Signal zur Grundlinie zurück
-  // (sonst U-Welle/P-Welle/Störung), QT physiologisch plausibel (≤ 65 % des RR-Abstands)
-  let qtReliable = false;
-  if (tEnd != null) {
-    const e = Math.round(tEnd), w0 = Math.min(n, e + Math.round(0.02 * fs)), w1 = Math.min(n, e + Math.round(0.09 * fs));
+  // (sonst U-Welle/P-Welle/Störung), QT physiologisch plausibel: T-Ende vor der nächsten P-Welle (≤ RR − 100 ms),
+  // QTc (Fridericia) ≤ 600 ms
+  const qtReliability = (arr, te) => {
+    const e = Math.round(te), w0 = Math.min(n, e + Math.round(0.02 * fs)), w1 = Math.min(n, e + Math.round(0.09 * fs));
     let after = 0;
-    for (let i = w0; i < w1; i++) after = Math.max(after, Math.abs(tpl[i] - iso));
+    for (let i = w0; i < w1; i++) after = Math.max(after, Math.abs(arr[i] - iso));
     const flat = w1 - w0 >= 3 && after <= Math.max(0.35 * Math.abs(tAmp), 0.04);
-    // physikalisch plausibel: T-Ende vor der nächsten P-Welle (≤ RR − 100 ms) und QTc (Fridericia) ≤ 600 ms
-    const qtS = (tEnd - q.on) / fs;
-    qtReliable = flat && qtS <= rrMean - 0.10 && qtS / Math.cbrt(rrMean) <= 0.6;
-  }
+    const qtS = (te - q.on) / fs;
+    return flat && qtS <= rrMean - 0.10 && qtS / Math.cbrt(rrMean) <= 0.6;
+  };
+  if (tOk) tEnd = tangentEnd(tpl);
+  let qtReliable = tEnd != null && qtReliability(tpl, tEnd);
   // P-Welle: Suche 20–400 ms vor QRS-Beginn, frühestens nach der T-Welle des Vorschlags.
   // Kriterium ist die Prominenz (Höhe über dem höheren der beiden Täler links/rechts) – robust auf T-Ausläufern.
   // Fensterbeginn: gemessenes T-Ende des Vorschlags (minus 40 ms Überlappung, P darf auf dem T-Ausläufer beginnen);
   // ohne verlässliche T-Messung die Formel 0,33·√RR
-  const prevTEnd = P_OPT.useMeasuredT && tOk && tEnd != null
+  // T-Wellen-Subtraktion: reicht die modellierte T-Welle des Vorschlags ins P-Fenster, wird sie abgezogen und das
+  // Fenster beginnt schon 20 ms nach dem verschobenen T-Gipfel
+  const rrS = Math.round(rrMean * fs);
+  const pWin0 = Math.max(1, q.on - Math.round(0.40 * fs));
+  const tM = P_OPT.subtractT && tOk ? tModel(tpl, iso, tPeak, tAmp, q.off, fs) : null;
+  const tWinEnd = P_OPT.useMeasuredT && tOk && tEnd != null
     ? Math.round(tEnd - rrMean * fs - 0.04 * fs)
     : r - Math.round((rrMean - 0.33 * Math.sqrt(rrMean) - P_OPT.tEndMargin) * fs);
-  const pA = Math.max(1, q.on - Math.round(0.40 * fs), Math.min(prevTEnd, q.on - Math.round(0.12 * fs))), pB = q.on - Math.round(0.01 * fs);
+  // Subtraktion nur bei Bedarf: endet die T-Welle des Vorschlags näher als 160 ms vor dem QRS-Beginn, überlagert sie
+  // zwangsläufig eine P-Welle (PR 120–200 ms, Dauer ≈ 100 ms). Sonst bleibt die Suche im Rohsignal (an LUDB genauer).
+  const tIntrudes = tOk && tEnd != null && tEnd - rrS > q.on - Math.round(T_OPT.subGapMs / 1000 * fs);
+  const tSub = !!tM && tIntrudes && tM.end - rrS > pWin0 + Math.round(0.02 * fs);
+  const src = tSub ? subtractPrevT(tpl, tM, rrS, q.on) : tpl; // Signal für die P-Suche
+  const prevTEnd = tSub ? Math.max(pWin0, tM.peak - rrS + Math.round(0.02 * fs)) : tWinEnd;
+  const pA = Math.max(1, q.on - Math.round(0.40 * fs), q.off - Math.round(rrMin * fs) + Math.round(0.04 * fs), Math.min(prevTEnd, q.on - Math.round(0.12 * fs))), pB = q.on - Math.round(0.01 * fs);
   let noise = 0;
-  for (let i = pA + 1; i < pB; i++) noise += Math.abs(tpl[i] - tpl[i - 1]);
+  for (let i = pA + 1; i < pB; i++) noise += Math.abs(src[i] - src[i - 1]);
   noise /= Math.max(1, pB - pA - 1);
   const W = Math.round(0.10 * fs);
   let pPeak = -1, prom = 0, sg = 1, base = iso;
   for (const sgn of [1, -1]) {
     for (let i = pA + 1; i < pB - 1; i++) {
-      const v = sgn * tpl[i];
-      if (v < sgn * tpl[i - 1] || v < sgn * tpl[i + 1]) continue; // nur lokale Extrema
+      const v = sgn * src[i];
+      if (v < sgn * src[i - 1] || v < sgn * src[i + 1]) continue; // nur lokale Extrema
       let lMin = Infinity, rMin = Infinity;
-      for (let k = Math.max(0, i - W); k <= i; k++) lMin = Math.min(lMin, sgn * tpl[k]);
-      for (let k = i; k <= Math.min(q.on, i + W); k++) rMin = Math.min(rMin, sgn * tpl[k]);
+      for (let k = Math.max(0, i - W); k <= i; k++) lMin = Math.min(lMin, sgn * src[k]);
+      for (let k = i; k <= Math.min(q.on, i + W); k++) rMin = Math.min(rMin, sgn * src[k]);
       // Prominenz = Höhe über dem höheren der beiden Täler. Liegt die linke Flanke am Fensterrand (P auf dem T-Ausläufer) und
       // ist links eine echte Kerbe vorhanden (nicht nur ein Rauschbuckel), zählt nur das rechte Tal.
       const promL = v - lMin, promR = v - rMin;
@@ -259,16 +294,27 @@ function delineate(tpl, r, fs, rrMean, polarity) {
       if (pr > prom) { prom = pr; pPeak = i; sg = sgn; base = sgn * Math.max(lMin, rMin); }
     }
   }
-  const pAmp = pPeak > 0 ? tpl[pPeak] - iso : 0;
-  const pPresent = pPeak > 0 && prom > Math.max(P_OPT.minProm, 0.03 * Math.abs(rAmp)) && prom > 6 * noise;
+  const pAmp = pPeak > 0 ? src[pPeak] - iso : 0;
+  let pPresent = pPeak > 0 && prom > Math.max(P_OPT.minProm, 0.03 * Math.abs(rAmp)) && prom > 6 * noise;
   let pOn = null, pOff = null, pOnEdge = false;
   if (pPresent) {
     const lim = P_OPT.onsetFrac * prom;
     pOn = pPeak;
-    while (pOn > Math.max(1, pPeak - Math.round(0.12 * fs)) && sg * (tpl[pOn] - base) > lim && !(sg * (tpl[pOn - 1] - tpl[pOn]) > 0.002 && pPeak - pOn > 0.02 * fs)) pOn--;
+    while (pOn > Math.max(1, pPeak - Math.round(0.12 * fs)) && sg * (src[pOn] - base) > lim && !(sg * (src[pOn - 1] - src[pOn]) > 0.002 && pPeak - pOn > 0.02 * fs)) pOn--;
     pOnEdge = pOn <= pA + 1; // Beginn läuft in den Fensterrand (T-Ausläufer) – PR-Messung unsicher
     pOff = pPeak;
-    while (pOff < Math.min(q.on - 1, pPeak + Math.round(0.12 * fs)) && sg * (tpl[pOff] - base) > lim && !(sg * (tpl[pOff + 1] - tpl[pOff]) > 0.002 && pOff - pPeak > 0.02 * fs)) pOff++;
+    while (pOff < Math.min(q.on - 1, pPeak + Math.round(0.12 * fs)) && sg * (src[pOff] - base) > lim && !(sg * (src[pOff + 1] - src[pOff]) > 0.002 && pOff - pPeak > 0.02 * fs)) pOff++;
+    // im subtrahierten T-Bereich gilt nur, was wie eine P-Welle aussieht (≤ 140 ms, deutlich kleiner als die R-Zacke)
+    if (tSub && pPeak < tWinEnd && ((pOff - pOn) / fs > 0.14 || prom >= 0.3 * Math.abs(rAmp))) { pPresent = false; pOn = pOff = null; pOnEdge = false; }
+  }
+  // P-Welle beginnt auf der T-Welle des Vorschlags: PR-Zeit unsicher, und umgekehrt verfälscht die P-Welle des Folgeschlags
+  // das T-Ende dieses Schlags → T-Ende am um die (als Gauß-Kurve modellierte) P-Welle bereinigten Signal neu messen
+  const pInT = pPresent && tSub && pOn < Math.round(tEnd - rrS) + Math.round(0.02 * fs);
+  if (pInT && tOk) {
+    const sgm = Math.max(0.02 * fs, (pOff - pOn) / 4), pos = pPeak + rrS, clean = Float64Array.from(tpl);
+    for (let i = Math.max(0, pos - Math.round(3 * sgm)); i <= Math.min(n - 1, pos + Math.round(3 * sgm)); i++) { const d = i - pos; clean[i] -= pAmp * Math.exp(-d * d / (2 * sgm * sgm)); }
+    const te = tangentEnd(clean);
+    if (te != null) { tEnd = te; qtReliable = qtReliability(clean, te); }
   }
 
   // ST-Strecke: J-Punkt + 60 ms
@@ -277,7 +323,7 @@ function delineate(tpl, r, fs, rrMean, polarity) {
   const ms = v => (v == null ? null : Math.round(v * 1000 / fs));
   const qt = tEnd != null ? ms(tEnd - q.on) : null;
   return {
-    iso, rAmp, qrsOn: q.on, qrsOff: q.off, pOn, pOff, pPeak: pPresent ? pPeak : null, pAmp: pPresent ? pAmp : 0, pProm: pPresent ? sg * prom : 0, pNoise: noise, pPresent, pOnEdge, pA, pB,
+    iso, rAmp, qrsOn: q.on, qrsOff: q.off, pOn, pOff, pPeak: pPresent ? pPeak : null, pAmp: pPresent ? pAmp : 0, pProm: pPresent ? sg * prom : 0, pNoise: noise, pPresent, pOnEdge, pA, pB, tSub, tModel: tM, pInT,
     tPeak: tPeak > 0 ? tPeak : null, tAmp, tEnd, qtReliable, tNoise, tOk, tFromJ: tPeak > 0 ? ms(tPeak - q.off) : null,
     pr: pPresent ? ms(q.on - pOn) : null,
     pDur: pPresent ? ms(pOff - pOn) : null,
@@ -544,15 +590,19 @@ export function analyze(raw, fsIn) {
   res.template = { data: tpl, r: pre, fs, beatsUsed: nSegs.length || segs.length };
   const precRR = beats.filter((b, i) => b.type === 'N' && corrs2[i] > 0.9 && b.rrPrev != null && !b.edge).map(b => b.rrPrev);
   const rrForQtc = RR_OPT.qtcFromPrecedingRR && precRR.length >= 3 ? median(precRR) : nn.length >= 3 ? mean(nn) : rrNormal;
-  res.intervals = delineate(tpl, pre, fs, rrForQtc, polarity);
+  // kürzester typischer RR-Abstand (10. Perzentil): das P-Fenster darf nie in den QRS des Vorschlags reichen
+  const rrMin = precRR.length >= 3 ? precRR.slice().sort((a, b) => a - b)[Math.floor(0.1 * (precRR.length - 1))] : rrForQtc;
+  res.intervals = delineate(tpl, pre, fs, rrForQtc, polarity, rrMin);
 
   // P-Wellen-Anteil je Normalschlag (für die Vorhofflimmern-Bewertung)
   if (res.intervals.pPeak != null) {
     const off = res.intervals.pPeak - pre, ref = res.intervals.pProm, w = Math.round(0.03 * fs), W = Math.round(0.1 * fs);
     const nIdx = beats.map((b, i) => (b.type === 'N' ? i : -1)).filter(i => i >= 0);
-    const use = nIdx.length >= 3 ? nIdx.map(i => segs[i]) : segs;
+    const useIdx = nIdx.length >= 3 ? nIdx : segs.map((_, i) => i);
     let present = 0;
-    for (const s of use) {
+    for (const bi of useIdx) {
+      let s = segs[bi];
+      if (res.intervals.tSub && beats[bi].rrPrev) s = subtractPrevT(s, res.intervals.tModel, Math.round(beats[bi].rrPrev * fs), res.intervals.qrsOn);
       const sg = Math.sign(ref);
       let best = -Infinity;
       for (let k = -w; k <= w; k++) {
@@ -565,7 +615,7 @@ export function analyze(raw, fsIn) {
       }
       if (best > 0.4 * Math.abs(ref)) present++;
     }
-    res.pRatio = present / use.length;
+    res.pRatio = present / useIdx.length;
   } else res.pRatio = 0;
 
   res.quality = assessQuality(x, fs, beats, corrs2, peaks, { gaps, badFrac, duration, removed });

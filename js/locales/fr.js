@@ -371,6 +371,7 @@ export default {
   'f.qt.mUnsure': 'Avec les appareils portables, de telles valeurs proviennent le plus souvent d’une erreur de mesure et non d’un véritable allongement du QT. Une mesure fiable du QT exige un signal calme avec une onde T nette.',
   'f.qt.aUnsure': 'Répétez la mesure au repos. Si la valeur reste au-dessus de 480 ms avec une bonne qualité de signal, consultez un médecin (apportez la liste de vos médicaments).',
   'f.sinus.xAI': 'Le rythme est régulier ; l’onde P est très petite dans cette dérivation, mais l’IA confirme un rythme sinusal ({p} %) et ne voit pas de fibrillation atriale. Fréquence cardiaque {hr}/min ({rate}).',
+  'ev.pInT': 'Onde P isolable seulement après soustraction de l’onde T précédente', 'f.sinus.xT': 'À cette fréquence, les ondes P se superposent à l’onde T du battement précédent et n’ont été détectées qu’après sa soustraction mathématique.', 'f.sinus.mT': 'Un flutter auriculaire avec conduction 2:1 peut avoir le même aspect sur une seule dérivation et ne peut pas être exclu ici.',
   'f.af.x1ai': 'Le modèle d’IA reconnaît un motif typique de fibrillation atriale, mais les intervalles mesurés entre les battements sont en grande partie réguliers.',
   'f.qt.eWideQrs': 'Avec un QRS élargi, l’intervalle QTc est surestimé (une partie de l’allongement provient du QRS lui-même).',
 };

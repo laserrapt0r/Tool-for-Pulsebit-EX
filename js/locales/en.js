@@ -371,6 +371,7 @@ export default {
   'f.qt.mUnsure': 'With handheld devices such values usually come from measurement error, not from a true QT prolongation. A reliable QT measurement needs a quiet signal with a distinct T wave.',
   'f.qt.aUnsure': 'Repeat the measurement at rest. If the value stays above 480 ms with good signal quality, see a doctor (bring your medication list).',
   'f.sinus.xAI': 'The rhythm is regular; the P wave is very small in this lead, but the AI confirms sinus rhythm ({p} %) and sees no atrial fibrillation. Heart rate {hr}/min ({rate}).',
+  'ev.pInT': 'P wave only separable after subtracting the preceding T wave', 'f.sinus.xT': 'At this rate the P waves sit on the T wave of the preceding beat and were only detected after mathematically removing it.', 'f.sinus.mT': 'Atrial flutter with 2:1 conduction can look identical in a single lead and cannot be ruled out here.',
   'f.af.x1ai': 'The AI model recognises a pattern typical of atrial fibrillation, but the measured beat intervals are largely regular.',
   'f.qt.eWideQrs': 'With a wide QRS complex the QTc interval is overestimated (part of the prolongation comes from the QRS itself).',
 };

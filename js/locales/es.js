@@ -371,6 +371,7 @@ export default {
   'f.qt.mUnsure': 'Con dispositivos portátiles, estos valores suelen deberse a errores de medición y no a una prolongación real del QT. Una medición fiable del QT requiere una señal tranquila con una onda T nítida.',
   'f.qt.aUnsure': 'Repita la medición en reposo. Si el valor se mantiene por encima de 480 ms con buena calidad de señal, consulte a un médico (lleve su lista de medicamentos).',
   'f.sinus.xAI': 'El ritmo es regular; la onda P es muy pequeña en esta derivación, pero la IA confirma un ritmo sinusal ({p} %) y no ve fibrilación auricular. Frecuencia cardíaca {hr}/min ({rate}).',
+  'ev.pInT': 'Onda P solo separable tras restar la onda T precedente', 'f.sinus.xT': 'A esta frecuencia las ondas P se superponen a la onda T del latido anterior y solo se detectaron tras eliminarla matemáticamente.', 'f.sinus.mT': 'Un flúter auricular con conducción 2:1 puede tener el mismo aspecto en una sola derivación y no puede descartarse aquí.',
   'f.af.x1ai': 'El modelo de IA reconoce un patrón típico de fibrilación auricular, pero los intervalos medidos entre latidos son en gran parte regulares.',
   'f.qt.eWideQrs': 'Con un QRS ancho, el intervalo QTc se sobreestima (parte de la prolongación procede del propio QRS).',
 };

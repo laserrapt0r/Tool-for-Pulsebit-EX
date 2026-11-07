@@ -371,6 +371,7 @@ export default {
   'f.qt.mUnsure': 'Con i dispositivi portatili questi valori derivano per lo più da errori di misura, non da un vero allungamento del QT. Una misura affidabile del QT richiede un segnale pulito con un’onda T ben visibile.',
   'f.qt.aUnsure': 'Ripetere la misurazione a riposo. Se il valore resta sopra 480 ms con buona qualità del segnale, consultare un medico (portare l’elenco dei farmaci).',
   'f.sinus.xAI': 'Il ritmo è regolare; l’onda P è molto piccola in questa derivazione, ma l’IA conferma un ritmo sinusale ({p} %) e non rileva fibrillazione atriale. Frequenza cardiaca {hr}/min ({rate}).',
+  'ev.pInT': 'Onda P distinguibile solo dopo la sottrazione dell’onda T precedente', 'f.sinus.xT': 'A questa frequenza le onde P si sovrappongono all’onda T del battito precedente e sono state rilevate solo dopo averla rimossa matematicamente.', 'f.sinus.mT': 'Un flutter atriale con conduzione 2:1 può apparire identico in una singola derivazione e qui non può essere escluso con certezza.',
   'f.af.x1ai': 'Il modello di IA riconosce un pattern tipico della fibrillazione atriale, ma gli intervalli misurati tra i battiti sono in gran parte regolari.',
   'f.qt.eWideQrs': 'Con un QRS largo l’intervallo QTc viene sovrastimato (parte del prolungamento deriva dal QRS stesso).',
 };

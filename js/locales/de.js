@@ -373,6 +373,7 @@ export default {
   'f.qt.mUnsure': 'Solche Werte entstehen bei Handgeräten meist durch Messfehler, nicht durch eine echte QT-Verlängerung. Eine verlässliche QT-Messung braucht ein ruhiges Signal mit deutlicher T-Welle.',
   'f.qt.aUnsure': 'Messung in Ruhe wiederholen. Bleibt der Wert bei guter Signalqualität über 480 ms, ärztlich abklären (Medikamentenliste mitnehmen).',
   'f.sinus.xAI': 'Der Rhythmus ist regelmäßig; die P-Welle ist in dieser Ableitung sehr klein, die KI bestätigt aber einen Sinusrhythmus ({p} %) und sieht kein Vorhofflimmern. Herzfrequenz {hr}/min ({rate}).',
+  'ev.pInT': 'P-Welle erst nach Abzug der vorangehenden T-Welle abgrenzbar', 'f.sinus.xT': 'Die P-Wellen liegen bei dieser Frequenz auf der T-Welle des vorangehenden Schlags und wurden erst nach deren rechnerischem Abzug erkannt.', 'f.sinus.mT': 'Vorhofflattern mit 2:1-Überleitung kann in einer einzelnen Ableitung genauso aussehen und ist hier nicht sicher auszuschließen.',
   'f.af.x1ai': 'Das KI-Modell erkennt ein für Vorhofflimmern typisches Muster, die gemessenen Schlagabstände sind jedoch weitgehend regelmäßig.',
   'f.qt.eWideQrs': 'Bei verbreitertem QRS-Komplex wird die QTc-Zeit überschätzt (ein Teil der Verlängerung stammt aus dem QRS selbst).',
 };

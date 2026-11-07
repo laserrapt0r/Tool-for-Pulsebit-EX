@@ -16,11 +16,11 @@ const WIDE = [[-0.04, 0.03, -0.15], [0, 0.03, 1.3], [0.07, 0.035, -0.6], [0.3, 0
  * @param {'normal'|'pac'|'af'|'pvc'|'brady'|'tachy'|'noisy'} kind
  * @returns {{signal: Float32Array, fs: number, kind: string, truth: string}}
  */
-export function synthEcg(kind = 'normal', { seconds = 30, fs = 250, seed = 1 } = {}) {
+export function synthEcg(kind = 'normal', { seconds = 30, fs = 250, seed = 1, rr = null } = {}) {
   const r = rng(seed), n = seconds * fs, x = new Float32Array(n);
   const beats = []; // [zeit, wellen]
   let t = 0.4, i = 0;
-  const base = { normal: 0.88, pac: 0.86, af: 0.72, pvc: 0.9, brady: 1.25, tachy: 0.52, noisy: 0.85 }[kind] ?? 0.88;
+  const base = rr ?? ({ normal: 0.88, pac: 0.86, af: 0.72, pvc: 0.9, brady: 1.25, tachy: 0.52, noisy: 0.85 }[kind] ?? 0.88); // rr: mittlerer RR-Abstand in s (Tests)
   let prevPremature = false;
   while (t < seconds - 0.3) {
     // Wellen dieses Schlags (vorzeitige Schläge erhalten ihre Form hier, der kurze Abstand liegt davor)
